@@ -40,45 +40,53 @@
             transition: background-color 0.3s ease;
         }
         .header button:hover {
-            background-color: #FFC400;
+            background-color: #e6c200;
         }
-        .profile-card, .history-card, .request-card {
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .card {
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .profile-card h3, .history-card h3, .request-card h3 {
+        .card h3 {
             margin-top: 0;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
+            font-size: 1.2em;
         }
-        .profile-info p, .request-form .form-group {
-            margin-bottom: 15px;
+        .card-profile, .card-actions, .card-history {
+            text-align: left;
         }
-        .request-form .form-group label {
-            display: block;
-            margin-bottom: 5px;
+        .card-history table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
         }
-        .request-form .form-group input, .request-form .form-group select {
+        .card-history th, .card-history td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .card-history th {
+            background-color: #f9f9f9;
+        }
+        .card-actions select, .card-actions input, .card-actions button {
             width: calc(100% - 20px);
             padding: 10px;
+            margin: 5px 0;
             border: 1px solid #ddd;
             border-radius: 5px;
         }
-        button[type="submit"] {
+        .card-actions button {
             background-color: #001f3f;
             color: #fff;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
-            font-size: 1em;
             font-weight: bold;
-            transition: background-color 0.3s ease;
         }
-        button[type="submit"]:hover {
+        .card-actions button:hover {
             background-color: #003366;
         }
     </style>
@@ -87,123 +95,149 @@
 
     <div class="header">
         <div class="logo">
-            <img src="Logo/Gemini_Generated_Image_xpx9nxxpx9nxxpx9.png" alt="Danna Bank Logo">
+            <img src="https://i.ibb.co/6P06Fj1/icono.png" alt="Danna Bank Logo">
         </div>
         <h1>Client Panel</h1>
-        <button onclick="logout()">Log out</button>
+        <button onclick="logout()">Logout</button>
     </div>
 
-    <div class="profile-card">
-        <h3>My Profile</h3>
-        <div class="profile-info">
-            <p><strong>Name:</strong> <span id="clientName"></span></p>
-            <p><strong>Email:</strong> <span id="clientEmail"></span></p>
-            <p><strong>Balance:</strong> <span id="clientBalance"></span></p>
+    <div class="dashboard-grid">
+        <div class="card card-profile">
+            <h3>Account Summary</h3>
+            <p><strong>Name:</strong> <span id="nombreCliente"></span></p>
+            <p><strong>Email:</strong> <span id="correoCliente"></span></p>
+            <p><strong>Current Balance:</strong> $<span id="saldoActual">0.00</span></p>
+            <p><strong>Total Loans:</strong> $<span id="totalCreditos">0.00</span></p>
         </div>
-    </div>
-    
-    <div class="request-card">
-        <h3>Make a Request</h3>
-        <form id="solicitudesForm">
-            <input type="hidden" id="userId" name="userId">
-            <div class="form-group">
-                <label for="tipo">Request Type:</label>
+
+        <div class="card card-actions">
+            <h3>Submit a Request</h3>
+            <form id="solicitudesForm">
                 <select id="tipo" name="tipo" onchange="toggleFields()" required>
-                    <option value="">Select a type</option>
+                    <option value="">Select a Request Type</option>
                     <option value="deposito">Deposit</option>
                     <option value="retiro">Withdrawal</option>
                     <option value="credito">Loan</option>
                 </select>
-            </div>
-            <div class="form-group">
-                <label for="monto">Amount:</label>
-                <input type="number" id="monto" name="monto" min="1" step="0.01" required>
-            </div>
-            <div class="form-group" id="bancoGroup" style="display: none;">
-                <label for="banco">Bank:</label>
-                <input type="text" id="banco" name="banco" placeholder="Enter bank name">
-            </div>
-            <div class="form-group" id="cuentaGroup" style="display: none;">
-                <label for="cuenta">Account Number:</label>
-                <input type="text" id="cuenta" name="cuenta" placeholder="Enter account number">
-            </div>
-            <div class="form-group" id="plazoGroup" style="display: none;">
-                <label for="plazo">Loan Term (in days):</label>
-                <input type="number" id="plazo" name="plazo" min="1" required>
-            </div>
-            <button type="submit">Submit Request</button>
-        </form>
+                <input type="number" id="monto" name="monto" placeholder="Amount" required min="1">
+                
+                <div id="bancoGroup" style="display: none;">
+                    <input type="text" id="banco" name="banco" placeholder="Bank">
+                </div>
+                
+                <div id="cuentaGroup" style="display: none;">
+                    <input type="text" id="cuenta" name="cuenta" placeholder="Account Number">
+                </div>
+
+                <div id="plazoGroup" style="display: none;">
+                    <input type="number" id="plazo" name="plazo" placeholder="Loan Term (in days)">
+                </div>
+                
+                <button type="submit">Submit Request</button>
+            </form>
+        </div>
+
+        <div class="card card-history">
+            <h3>Transaction History</h3>
+            <table id="movimientosTable">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="card card-history">
+            <h3>Loan History</h3>
+            <table id="creditosTable">
+                <thead>
+                    <tr>
+                        <th>Amount</th>
+                        <th>Total to Pay</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
     </div>
-    
-    <div class="history-card">
-        <h3>My History</h3>
-        <ul id="historyList">
-            <li>No history to display.</li>
-        </ul>
-    </div>
-    
+
     <script>
+        // Check session role on page load
+        const role = sessionStorage.getItem('role');
+        const user = JSON.parse(sessionStorage.getItem('user'));
+        if (role !== 'client' || !user) {
+            alert('You do not have permission to access this page.');
+            window.location.href = 'index.html';
+        }
+
         async function cargarDatos() {
-            const user = JSON.parse(sessionStorage.getItem('user'));
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-            document.getElementById('userId').value = user.id;
-            
             try {
                 const response = await fetch(`/api/cliente/${user.id}`);
-                const data = await response.json();
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'Error fetching data.');
+                }
                 
-                document.getElementById('clientName').textContent = `${data.client.first_name} ${data.client.last_name}`;
-                document.getElementById('clientEmail').textContent = data.client.email;
-                document.getElementById('clientBalance').textContent = `$${parseFloat(data.client.balance).toFixed(2)}`;
+                // Update account summary
+                document.getElementById('nombreCliente').textContent = `${result.cliente.first_name} ${result.cliente.last_name}`;
+                document.getElementById('correoCliente').textContent = result.cliente.email;
+                document.getElementById('saldoActual').textContent = parseFloat(result.cliente.balance).toFixed(2);
+                document.getElementById('totalCreditos').textContent = parseFloat(result.total_creditos).toFixed(2);
                 
-                renderHistory(data.transactions, data.loans);
+                // Clear tables
+                const movimientosTableBody = document.querySelector('#movimientosTable tbody');
+                const creditosTableBody = document.querySelector('#creditosTable tbody');
+                movimientosTableBody.innerHTML = '';
+                creditosTableBody.innerHTML = '';
+                
+                // Populate transaction history
+                result.movimientos.forEach(movimiento => {
+                    const row = `
+                        <tr>
+                            <td>${movimiento.transaction_type}</td>
+                            <td>$${movimiento.amount.toFixed(2)}</td>
+                            <td>${new Date(movimiento.created_at).toLocaleDateString()}</td>
+                            <td>${movimiento.status}</td>
+                        </tr>
+                    `;
+                    movimientosTableBody.innerHTML += row;
+                });
+                
+                // Populate loan history
+                result.creditos.forEach(credito => {
+                    const row = `
+                        <tr>
+                            <td>$${credito.amount.toFixed(2)}</td>
+                            <td>$${credito.total_amount_to_pay.toFixed(2)}</td>
+                            <td>${new Date(credito.end_date).toLocaleDateString()}</td>
+                            <td>${credito.status}</td>
+                        </tr>
+                    `;
+                    creditosTableBody.innerHTML += row;
+                });
+
             } catch (err) {
-                console.error('Error loading client data:', err);
-                alert('Error loading data.');
+                console.error('Error fetching data:', err);
+                alert('Error fetching client data. Please try again.');
             }
         }
-    
-        function renderHistory(transactions, loans) {
-            const combinedHistory = [
-                ...transactions.map(t => ({...t, type: t.type, date: t.created_at, status: t.status})),
-                ...loans.map(l => ({...l, type: 'loan', date: l.fecha_solicitud, status: l.estado}))
-            ];
-            
-            combinedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            const list = document.getElementById('historyList');
-            list.innerHTML = '';
-            if (combinedHistory.length === 0) {
-                list.innerHTML = '<li>No history to display.</li>';
-                return;
-            }
-            
-            combinedHistory.forEach(item => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <strong>Type:</strong> ${item.type} | 
-                    <strong>Amount:</strong> $${parseFloat(item.amount).toFixed(2)} | 
-                    <strong>Status:</strong> ${item.status} | 
-                    <strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}
-                `;
-                list.appendChild(li);
-            });
-        }
-    
+
         async function enviarSolicitud(event) {
             event.preventDefault();
-            const form = document.getElementById('solicitudesForm');
+            const form = event.target;
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
-    
-            data.user_id = document.getElementById('userId').value;
-            data.amount = parseFloat(data.monto);
-            data.type = data.tipo;
-            data.term = data.plazo;
-            
+            data.usuario_id = user.id;
+
             try {
                 const response = await fetch('/api/solicitud', {
                     method: 'POST',
@@ -215,38 +249,39 @@
                 if (response.ok) {
                     cargarDatos();
                     form.reset();
+                    toggleFields();
                 }
             } catch (err) {
-                console.error('Error sending request:', err);
-                alert('Error sending request.');
+                console.error('Error submitting request:', err);
+                alert('Error submitting the request.');
             }
         }
-    
+
         function toggleFields() {
-            const type = document.getElementById('tipo').value;
+            const tipo = document.getElementById('tipo').value;
             const plazoInput = document.getElementById('plazo');
-    
+
             document.getElementById('bancoGroup').style.display = 'none';
             document.getElementById('cuentaGroup').style.display = 'none';
             document.getElementById('plazoGroup').style.display = 'none';
             plazoInput.removeAttribute('required');
-    
-            if (type === 'deposito' || type === 'retiro') {
+
+            if (tipo === 'deposito' || tipo === 'retiro') {
                 document.getElementById('bancoGroup').style.display = 'block';
                 document.getElementById('cuentaGroup').style.display = 'block';
-            } else if (type === 'credito') {
+            } else if (tipo === 'credito') {
                 document.getElementById('plazoGroup').style.display = 'block';
                 plazoInput.setAttribute('required', 'required');
             }
         }
-    
+
         document.addEventListener('DOMContentLoaded', () => {
             cargarDatos();
             toggleFields();
         });
         
         document.getElementById('solicitudesForm').addEventListener('submit', enviarSolicitud);
-    
+
         function logout() {
             sessionStorage.clear();
             window.location.href = 'index.html';
