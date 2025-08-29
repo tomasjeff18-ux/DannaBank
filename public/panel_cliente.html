@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Cliente - Danna Bank</title>
+    <title>Client Panel - Danna Bank</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -40,94 +40,46 @@
             transition: background-color 0.3s ease;
         }
         .header button:hover {
-            background-color: #e6c200;
+            background-color: #FFC400;
         }
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .dashboard-item {
-            background-color: #001f3f;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        .dashboard-item h3 {
-            font-size: 1.2em;
-            margin: 0 0 10px;
-        }
-        .dashboard-item p {
-            font-size: 2.5em;
-            margin: 0;
-            font-weight: bold;
-        }
-        .panel {
+        .profile-card, .history-card, .request-card {
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
-        .panel h2 {
-            border-bottom: 2px solid #FFD700;
-            padding-bottom: 10px;
+        .profile-card h3, .history-card h3, .request-card h3 {
             margin-top: 0;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
         }
-        .form-group {
+        .profile-info p, .request-form .form-group {
             margin-bottom: 15px;
         }
-        .form-group label {
+        .request-form .form-group label {
             display: block;
             margin-bottom: 5px;
-            font-weight: bold;
         }
-        .form-group input,
-        .form-group select {
+        .request-form .form-group input, .request-form .form-group select {
             width: calc(100% - 20px);
             padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
             border-radius: 5px;
         }
-        .form-group button {
-            background-color: #FFD700;
-            color: #001f3f;
-            padding: 10px 15px;
+        button[type="submit"] {
+            background-color: #001f3f;
+            color: #fff;
+            padding: 10px 20px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 1em;
             font-weight: bold;
             transition: background-color 0.3s ease;
         }
-        .form-group button:disabled {
-            background-color: #ddd;
-            cursor: not-allowed;
-        }
-        .credit-info p {
-            font-size: 1em;
-            margin: 5px 0;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-        th {
-            background-color: #001f3f;
-            color: white;
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
+        button[type="submit"]:hover {
+            background-color: #003366;
         }
     </style>
 </head>
@@ -135,192 +87,128 @@
 
     <div class="header">
         <div class="logo">
-            <img src="Logo/Gemini_Generated_Image_xpx9nxxpx9nxxpx9.png" alt="Danna Bank Logo">
+            <img src="https://i.ibb.co/6P06Fj1/icono.png" alt="Danna Bank Logo">
         </div>
-        <h1 id="userName">Panel de Cliente</h1>
-        <button onclick="logout()">Cerrar Sesión</button>
+        <h1>Client Panel</h1>
+        <button onclick="logout()">Log out</button>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="dashboard-item">
-            <h3>Saldo Actual</h3>
-            <p id="saldoActual">$0.00</p>
-        </div>
-        <div class="dashboard-item">
-            <h3>Crédito</h3>
-            <div id="creditInfoContainer">
-                <p id="creditMessage">No tiene créditos aprobados.</p>
-                <div id="creditDetails" style="display: none;">
-                    <p>Monto Total a Pagar: <span id="montoTotalPagar"></span></p>
-                    <p>Valor Pagado: <span id="valorPagado"></span></p>
-                    <p>Fecha de Vencimiento: <span id="fechaVencimiento"></span></p>
-                </div>
-            </div>
+    <div class="profile-card">
+        <h3>My Profile</h3>
+        <div class="profile-info">
+            <p><strong>Name:</strong> <span id="clientName"></span></p>
+            <p><strong>Email:</strong> <span id="clientEmail"></span></p>
+            <p><strong>Balance:</strong> <span id="clientBalance"></span></p>
         </div>
     </div>
-
-    <div class="panel">
-        <h2>Transacciones</h2>
-        <div class="form-group">
-            <label for="tipo">Tipo de Transacción:</label>
-            <select id="tipo" onchange="toggleFields()">
-                <option value="deposito">Depósito</option>
-                <option value="retiro">Retiro</option>
-                <option value="credito">Solicitud de Crédito</option>
-            </select>
-        </div>
+    
+    <div class="request-card">
+        <h3>Make a Request</h3>
         <form id="solicitudesForm">
+            <input type="hidden" id="userId" name="userId">
             <div class="form-group">
-                <label for="monto">Monto:</label>
-                <input type="number" id="monto" name="monto" required min="1">
+                <label for="tipo">Request Type:</label>
+                <select id="tipo" name="tipo" onchange="toggleFields()" required>
+                    <option value="">Select a type</option>
+                    <option value="deposito">Deposit</option>
+                    <option value="retiro">Withdrawal</option>
+                    <option value="credito">Loan</option>
+                </select>
             </div>
-            
-            <div class="form-group" id="bancoGroup">
-                <label for="banco">Banco (Retiro/Depósito):</label>
-                <input type="text" id="banco" name="banco" placeholder="Ej: Banco Pichincha">
+            <div class="form-group">
+                <label for="monto">Amount:</label>
+                <input type="number" id="monto" name="monto" min="1" step="0.01" required>
             </div>
-            
-            <div class="form-group" id="cuentaGroup">
-                <label for="cuenta">Número de Cuenta (Retiro/Depósito):</label>
-                <input type="text" id="cuenta" name="cuenta" placeholder="Ej: 1234567890">
+            <div class="form-group" id="bancoGroup" style="display: none;">
+                <label for="banco">Bank:</label>
+                <input type="text" id="banco" name="banco" placeholder="Enter bank name">
             </div>
-
+            <div class="form-group" id="cuentaGroup" style="display: none;">
+                <label for="cuenta">Account Number:</label>
+                <input type="text" id="cuenta" name="cuenta" placeholder="Enter account number">
+            </div>
             <div class="form-group" id="plazoGroup" style="display: none;">
-                <label for="plazo">Plazo (días):</label>
-                <input type="number" id="plazo" name="plazo" min="1" max="30">
+                <label for="plazo">Loan Term (in days):</label>
+                <input type="number" id="plazo" name="plazo" min="1" required>
             </div>
-
-            <div class="form-group">
-                <button type="submit" id="submitBtn">Enviar Solicitud</button>
-            </div>
+            <button type="submit">Submit Request</button>
         </form>
     </div>
-
-    <div class="panel">
-        <h2>Últimos Movimientos</h2>
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>Tipo</th>
-                    <th>Monto</th>
-                    <th>Fecha</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody id="movimientosTable">
-                <tr><td colspan="4">Cargando movimientos...</td></tr>
-            </tbody>
-        </table>
+    
+    <div class="history-card">
+        <h3>My History</h3>
+        <ul id="historyList">
+            <li>No history to display.</li>
+        </ul>
     </div>
-
+    
     <script>
-        const user = JSON.parse(sessionStorage.getItem('user'));
-        const rol = sessionStorage.getItem('rol');
-
-        if (!user || rol !== 'cliente') {
-            window.location.href = 'index.html';
-        }
-
-        document.getElementById('userName').textContent = `Hola, ${user.nombres}`;
-
         async function cargarDatos() {
+            const user = JSON.parse(sessionStorage.getItem('user'));
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('userId').value = user.id;
+            
             try {
                 const response = await fetch(`/api/cliente/${user.id}`);
                 const data = await response.json();
                 
-                document.getElementById('saldoActual').textContent = `$${parseFloat(data.user.saldo_actual).toFixed(2)}`;
-
-                // Lógica de visualización de crédito y restricción de retiros
-                const creditDetails = document.getElementById('creditDetails');
-                const creditMessage = document.getElementById('creditMessage');
-                const tipoSelect = document.getElementById('tipo');
-                const optionRetiro = tipoSelect.querySelector('option[value="retiro"]');
+                document.getElementById('clientName').textContent = `${data.client.first_name} ${data.client.last_name}`;
+                document.getElementById('clientEmail').textContent = data.client.email;
+                document.getElementById('clientBalance').textContent = `$${parseFloat(data.client.balance).toFixed(2)}`;
                 
-                if (data.creditoVigente) {
-                    creditMessage.style.display = 'none';
-                    creditDetails.style.display = 'block';
-                    document.getElementById('montoTotalPagar').textContent = `$${parseFloat(data.creditoVigente.monto_total_a_pagar).toFixed(2)}`;
-                    document.getElementById('valorPagado').textContent = `$${parseFloat(data.creditoVigente.valor_pagado).toFixed(2)}`;
-                    
-                    // Formatear y mostrar la fecha de vencimiento
-                    const fecha = new Date(data.creditoVigente.fecha_vencimiento);
-                    const fechaFormateada = fecha.toLocaleDateString();
-                    document.getElementById('fechaVencimiento').textContent = fechaFormateada;
-                    
-                    // Lógica para bloquear retiros si hay un crédito pendiente
-                    if (data.creditoVigente.valor_pagado < data.creditoVigente.monto_total_a_pagar) {
-                        if (optionRetiro) {
-                            optionRetiro.style.display = 'none';
-                        }
-                        if (tipoSelect.value === 'retiro') {
-                            tipoSelect.value = 'deposito';
-                            toggleFields();
-                        }
-                    } else {
-                         // Si el crédito está pagado, mostrar la opción de retiro
-                        if (optionRetiro) {
-                            optionRetiro.style.display = 'block';
-                        }
-                    }
-                } else {
-                    creditMessage.style.display = 'block';
-                    creditDetails.style.display = 'none';
-                    // Si no hay crédito, mostrar la opción de retiro
-                    if (optionRetiro) {
-                        optionRetiro.style.display = 'block';
-                    }
-                }
-                
-                // Cargar movimientos
-                const movimientosTable = document.getElementById('movimientosTable');
-                movimientosTable.innerHTML = '';
-                if (data.movimientos.length > 0) {
-                    data.movimientos.forEach(mov => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${mov.tipo}</td>
-                            <td>$${parseFloat(mov.monto).toFixed(2)}</td>
-                            <td>${new Date(mov.fecha).toLocaleString()}</td>
-                            <td>${mov.estado}</td>
-                        `;
-                        movimientosTable.appendChild(row);
-                    });
-                } else {
-                    movimientosTable.innerHTML = '<tr><td colspan="4">No hay movimientos recientes.</td></tr>';
-                }
-
+                renderHistory(data.transactions, data.loans);
             } catch (err) {
-                console.error('Error al cargar datos del cliente:', err);
-                alert('Hubo un error al cargar tus datos. Por favor, intenta de nuevo.');
+                console.error('Error loading client data:', err);
+                alert('Error loading data.');
             }
         }
-        
+    
+        function renderHistory(transactions, loans) {
+            const combinedHistory = [
+                ...transactions.map(t => ({...t, type: t.type, date: t.created_at, status: t.status})),
+                ...loans.map(l => ({...l, type: 'loan', date: l.fecha_solicitud, status: l.estado}))
+            ];
+            
+            combinedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            if (combinedHistory.length === 0) {
+                list.innerHTML = '<li>No history to display.</li>';
+                return;
+            }
+            
+            combinedHistory.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>Type:</strong> ${item.type} | 
+                    <strong>Amount:</strong> $${parseFloat(item.amount).toFixed(2)} | 
+                    <strong>Status:</strong> ${item.status} | 
+                    <strong>Date:</strong> ${new Date(item.date).toLocaleDateString()}
+                `;
+                list.appendChild(li);
+            });
+        }
+    
         async function enviarSolicitud(event) {
             event.preventDefault();
-            const form = event.target;
-            const tipo = document.getElementById('tipo').value;
-            const monto = parseFloat(document.getElementById('monto').value);
-            const banco = document.getElementById('banco').value;
-            const cuenta = document.getElementById('cuenta').value;
-            const plazo = document.getElementById('plazo').value;
-
-            if (isNaN(monto) || monto <= 0) {
-                alert('Por favor, ingresa un monto válido.');
-                return;
-            }
-
-            if (tipo === 'retiro' && monto > parseFloat(document.getElementById('saldoActual').textContent.replace('$', ''))) {
-                alert('No tienes suficiente saldo para realizar este retiro.');
-                return;
-            }
-
-            const usuario_id = user.id;
-
+            const form = document.getElementById('solicitudesForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+    
+            data.user_id = document.getElementById('userId').value;
+            data.amount = parseFloat(data.monto);
+            data.type = data.tipo;
+            data.term = data.plazo;
+            
             try {
                 const response = await fetch('/api/solicitud', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ usuario_id, tipo, monto, banco, cuenta, plazo })
+                    body: JSON.stringify(data)
                 });
                 const result = await response.json();
                 alert(result.message);
@@ -329,36 +217,36 @@
                     form.reset();
                 }
             } catch (err) {
-                console.error('Error al enviar la solicitud:', err);
-                alert('Error al enviar la solicitud.');
+                console.error('Error sending request:', err);
+                alert('Error sending request.');
             }
         }
-
+    
         function toggleFields() {
-            const tipo = document.getElementById('tipo').value;
+            const type = document.getElementById('tipo').value;
             const plazoInput = document.getElementById('plazo');
-
+    
             document.getElementById('bancoGroup').style.display = 'none';
             document.getElementById('cuentaGroup').style.display = 'none';
             document.getElementById('plazoGroup').style.display = 'none';
             plazoInput.removeAttribute('required');
-
-            if (tipo === 'deposito' || tipo === 'retiro') {
+    
+            if (type === 'deposito' || type === 'retiro') {
                 document.getElementById('bancoGroup').style.display = 'block';
                 document.getElementById('cuentaGroup').style.display = 'block';
-            } else if (tipo === 'credito') {
+            } else if (type === 'credito') {
                 document.getElementById('plazoGroup').style.display = 'block';
                 plazoInput.setAttribute('required', 'required');
             }
         }
-
+    
         document.addEventListener('DOMContentLoaded', () => {
             cargarDatos();
             toggleFields();
         });
         
         document.getElementById('solicitudesForm').addEventListener('submit', enviarSolicitud);
-
+    
         function logout() {
             sessionStorage.clear();
             window.location.href = 'index.html';
