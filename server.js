@@ -1,18 +1,17 @@
-// Import necessary libraries
+// Importar las librerías necesarias
 const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
-const cors = require('cors');
+const jwt = require('jsonwebtoken'); // Importar JWT para la autenticación
 
 const app = express();
 const port = process.env.PORT || 3000;
+const jwtSecret = 'mi_secreto_super_secreto'; // DEBE SER UNA VARIABLE DE ENTORNO EN PRODUCCIÓN
 
-// Middleware to process JSON requests
+// Middleware para procesar JSON en las peticiones
 app.use(express.json());
-app.use(cors());
 
-// Database connection configuration
+// Configuración de la conexión a la base de datos
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -20,336 +19,361 @@ const pool = new Pool({
     }
 });
 
-// Middleware to serve static files from the 'public' folder
+// Middleware para servir los archivos estáticos desde la carpeta 'public'
 app.use(express.static('public'));
 
+// Middleware para verificar el token JWT
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null) {
+        return res.sendStatus(401).json({ message: 'No se proporcionó un token de autenticación.' });
+    }
+
+    jwt.verify(token, jwtSecret, (err, user) => {
+        if (err) {
+            return res.sendStatus(403).json({ message: 'Token inválido.' });
+        }
+        req.user = user;
+        next();
+    });
+};
+
 // --------------------------------------------------------------------------
-// --- API Endpoints ---
+// --- Endpoints de la API ---\
 // --------------------------------------------------------------------------
 
-// 1. Client Registration Endpoint
-app.post('/api/register', async (req, res) => {
+// 1. Endpoint para el registro de clientes
+app.post('/api/registro', async (req, res) => {
     const {
-        firstName,
-        lastName,
-        idCard,
-        email,
-        password,
-        phone,
-        address,
-        province,
-        city,
-        referrerIdCard
+        nombres,
+        apellidos,
+        cedula,
+        correo,
+        contrasena,
+        telefono,
+        direccion,
+        provincia,
+        ciudad,
+        cedula_recomendador
     } = req.body;
 
-    try {
-        const checkUser = await pool.query(
-            'SELECT * FROM users WHERE email = $1 OR id_card = $2', [email, idCard]
-        );
+    const client = await pool.connect();
 
+    try {
+        await client.query('BEGIN');
+
+        // Validar que la cédula del recomendador exista si se proporciona
+        if (cedula_recomendador) {
+            const recomendador = await client.query('SELECT id FROM users WHERE cedula = $1 AND role = $2', [cedula_recomendador, 'cliente']);
+            if (recomendador.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ message: 'La cédula del recomendador no es válida.' });
+            }
+        }
+
+        const checkUser = await client.query(
+            'SELECT * FROM users WHERE correo = $1 OR cedula = $2', [correo, cedula]
+        );
         if (checkUser.rows.length > 0) {
-            return res.status(409).json({ message: 'The email or ID card is already registered. You will be redirected to the login form.' });
+            await client.query('ROLLBACK');
+            return res.status(409).json({ message: 'El correo o la cédula ya están registrados.' });
         }
 
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        const newUserUUID = uuidv4();
+        const hashedPassword = await bcrypt.hash(contrasena, salt);
 
-        // Register the user with a 'pending' status
-        await pool.query(
-            'INSERT INTO users(id, first_name, last_name, id_card, email, password, phone, address, province, city, referrer_id_card, role, status, current_balance) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
-            [newUserUUID, firstName, lastName, idCard, email, hashedPassword, phone, address, province, city, referrerIdCard, 'client', 'pending', 0]
-        );
+        const newUserQuery = `
+            INSERT INTO users (
+                nombres,
+                apellidos,
+                cedula,
+                correo,
+                contrasena,
+                telefono,
+                direccion,
+                provincia,
+                ciudad,
+                cedula_recomendador,
+                role
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;
+        `;
+        const newUser = await client.query(newUserQuery, [
+            nombres,
+            apellidos,
+            cedula,
+            correo,
+            hashedPassword,
+            telefono,
+            direccion,
+            provincia,
+            ciudad,
+            cedula_recomendador,
+            'cliente'
+        ]);
 
-        res.status(201).json({ message: 'Registration request sent successfully. Wait for admin approval.' });
+        // Crear una cuenta de banco para el nuevo usuario
+        await client.query('INSERT INTO cuentas (user_id) VALUES ($1)', [newUser.rows[0].id]);
 
+        await client.query('COMMIT');
+        res.status(201).json({ message: 'Registro exitoso. Ahora puedes iniciar sesión.' });
     } catch (err) {
-        console.error('Error registering client:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al registrar usuario:', err);
+        await client.query('ROLLBACK');
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    } finally {
+        client.release();
     }
 });
 
-// 2. Login Endpoint
+// 2. Endpoint para el inicio de sesión
 app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
-    try {
-        const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        const user = userResult.rows[0];
+    const { correo, contrasena } = req.body;
 
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials.' });
+    try {
+        const user = await pool.query('SELECT * FROM users WHERE correo = $1', [correo]);
+        if (user.rows.length === 0) {
+            return res.status(400).json({ message: 'Correo o contraseña incorrectos.' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(contrasena, user.rows[0].contrasena);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials.' });
+            return res.status(400).json({ message: 'Correo o contraseña incorrectos.' });
         }
 
-        if (user.status !== 'active') {
-            return res.status(403).json({ message: 'Your account is not active. Wait for admin approval.' });
-        }
+        const payload = {
+            id: user.rows[0].id,
+            email: user.rows[0].correo,
+            role: user.rows[0].role
+        };
+        const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
 
-        // Return the user and role
         res.status(200).json({
-            message: 'Login successful.',
-            role: user.role,
+            message: 'Inicio de sesión exitoso.',
+            token,
             user: {
-                id: user.id,
-                firstName: user.first_name,
-                lastName: user.last_name,
-                currentBalance: user.current_balance
+                id: user.rows[0].id,
+                nombres: user.rows[0].nombres,
+                role: user.rows[0].role
             }
         });
     } catch (err) {
-        console.error('Login error:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al iniciar sesión:', err);
+        res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
 
-// 3. Client Panel Data Endpoint
-app.get('/api/client/data/:userId', async (req, res) => {
-    const { userId } = req.params;
+// 3. Endpoint para obtener datos del cliente
+app.get('/api/cliente/datos', authenticateToken, async (req, res) => {
+    const userId = req.user.id;
+    if (req.user.role !== 'cliente') {
+        return res.status(403).json({ message: 'Acceso denegado.' });
+    }
+
     try {
-        const userResult = await pool.query('SELECT first_name, last_name, current_balance FROM users WHERE id = $1 AND role = $2 AND status = $3', [userId, 'client', 'active']);
-        const user = userResult.rows[0];
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found or not active.' });
-        }
-
-        const movementsResult = await pool.query('SELECT transaction_type, amount, created_at FROM transactions WHERE sender_id = $1 OR receiver_id = $1 ORDER BY created_at DESC LIMIT 10', [userId]);
-
-        const creditResult = await pool.query('SELECT * FROM credits WHERE user_id = $1 AND status = $2', [userId, 'approved']);
-        const activeCredit = creditResult.rows[0];
+        const cliente = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        const cuenta = await pool.query('SELECT * FROM cuentas WHERE user_id = $1', [userId]);
+        const transacciones = await pool.query('SELECT * FROM transactions WHERE sender_id = $1 OR receiver_id = $1 ORDER BY created_at DESC', [userId]);
+        const creditos = await pool.query('SELECT * FROM creditos WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
 
         res.status(200).json({
-            user,
-            movements: movementsResult.rows,
-            activeCredit
+            cliente: cliente.rows[0],
+            cuenta: cuenta.rows[0],
+            transacciones: transacciones.rows,
+            creditos: creditos.rows
         });
     } catch (err) {
-        console.error('Error fetching client data:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al obtener datos del cliente:', err);
+        res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
 
-// 4. Request Endpoint (Withdrawal, Deposit, Credit)
-app.post('/api/client/request', async (req, res) => {
-    const { userId, type, amount, bank, accountNumber, termInDays } = req.body;
+// 4. Endpoint para transferencias
+app.post('/api/transferencia', authenticateToken, async (req, res) => {
+    const { receiverCedula, amount } = req.body;
+    const senderId = req.user.id;
+    const client = await pool.connect();
+
     try {
-        const userResult = await pool.query('SELECT current_balance FROM users WHERE id = $1', [userId]);
-        const user = userResult.rows[0];
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found.' });
+        if (req.user.role !== 'cliente') {
+            return res.status(403).json({ message: 'Acceso denegado.' });
         }
 
-        if (type === 'withdrawal') {
-            if (user.current_balance < amount) {
-                return res.status(400).json({ message: 'Insufficient funds for withdrawal.' });
-            }
-            await pool.query('INSERT INTO withdrawal_requests (user_id, amount, bank, account_number) VALUES ($1, $2, $3, $4)', [userId, amount, bank, accountNumber]);
-        } else if (type === 'credit') {
-            const activeCredit = await pool.query('SELECT * FROM credits WHERE user_id = $1 AND status = $2', [userId, 'approved']);
-            if (activeCredit.rows.length > 0) {
-                return res.status(400).json({ message: 'You already have an active credit.' });
-            }
-            if (amount > 50 || termInDays > 30) {
-                return res.status(400).json({ message: 'Credit amount cannot exceed $50 and term cannot exceed 30 days.' });
-            }
-            await pool.query('INSERT INTO credit_requests (user_id, amount, term_in_days, status) VALUES ($1, $2, $3, $4)', [userId, amount, termInDays, 'pending']);
-        } else if (type === 'deposit') {
-            await pool.query('INSERT INTO deposit_requests (user_id, amount, bank) VALUES ($1, $2, $3)', [userId, amount, bank]);
-        } else {
-            return res.status(400).json({ message: 'Invalid request type.' });
+        await client.query('BEGIN');
+
+        const senderAccount = await client.query('SELECT * FROM cuentas WHERE user_id = $1 FOR UPDATE', [senderId]);
+        if (senderAccount.rows[0].balance < amount) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'Saldo insuficiente.' });
         }
-        res.status(201).json({ message: 'Request sent successfully. Waiting for admin approval.' });
+
+        const receiverUser = await client.query('SELECT id FROM users WHERE cedula = $1', [receiverCedula]);
+        if (receiverUser.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'El destinatario no existe.' });
+        }
+        const receiverId = receiverUser.rows[0].id;
+
+        await client.query('UPDATE cuentas SET balance = balance - $1 WHERE user_id = $2', [amount, senderId]);
+        await client.query('UPDATE cuentas SET balance = balance + $1 WHERE user_id = $2', [amount, receiverId]);
+        await client.query('INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type) VALUES ($1, $2, $3, $4)', [senderId, receiverId, amount, 'transferencia']);
+
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Transferencia realizada con éxito.' });
     } catch (err) {
-        console.error('Error sending request:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al realizar transferencia:', err);
+        await client.query('ROLLBACK');
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    } finally {
+        client.release();
     }
 });
 
-// 5. Admin Panel Data Endpoint
-app.get('/api/admin/data', async (req, res) => {
+// 5. Endpoint para solicitudes (depósito, retiro, crédito)
+app.post('/api/solicitud', authenticateToken, async (req, res) => {
+    const { tipo, monto, banco, cuenta, plazo } = req.body;
+    const userId = req.user.id;
+    if (req.user.role !== 'cliente') {
+        return res.status(403).json({ message: 'Acceso denegado.' });
+    }
+
     try {
-        // Bank Capital
-        const capitalResult = await pool.query('SELECT capital FROM bank_capital WHERE id = 1');
-        const bankCapital = capitalResult.rows[0].capital;
+        switch (tipo) {
+            case 'deposito':
+            case 'retiro':
+                await pool.query('INSERT INTO withdrawal_requests (user_id, amount, status, bank, account_number) VALUES ($1, $2, $3, $4, $5)',
+                    [userId, monto, 'pending', banco, cuenta]);
+                break;
+            case 'credito':
+                await pool.query('INSERT INTO credit_requests (user_id, amount, status, plazo) VALUES ($1, $2, $3, $4)',
+                    [userId, monto, 'pending', plazo]);
+                break;
+            default:
+                return res.status(400).json({ message: 'Tipo de solicitud inválido.' });
+        }
+        res.status(201).json({ message: 'Solicitud enviada con éxito.' });
+    } catch (err) {
+        console.error('Error al enviar solicitud:', err);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
 
-        // Total money lent
-        const lentMoneyResult = await pool.query('SELECT SUM(total_amount_due) FROM credits WHERE status = $1', ['approved']);
-        const lentMoney = lentMoneyResult.rows[0].sum || 0;
+// 6. Endpoint para obtener datos del administrador
+app.get('/api/admin/datos', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'administrador') {
+        return res.status(403).json({ message: 'Acceso denegado.' });
+    }
 
-        // Total client balance
-        const clientCapitalResult = await pool.query('SELECT SUM(current_balance) FROM users WHERE role = $1 AND status = $2', ['client', 'active']);
-        const clientCapital = clientCapitalResult.rows[0].sum || 0;
-
-        // Capital history for graph
-        const capitalHistoryResult = await pool.query('SELECT amount, created_at FROM capital_history ORDER BY created_at DESC LIMIT 30');
-        const capitalHistory = capitalHistoryResult.rows;
-
-        // Pending requests
-        const pendingUsers = await pool.query('SELECT * FROM users WHERE status = $1', ['pending']);
-        const pendingWithdrawals = await pool.query('SELECT * FROM withdrawal_requests WHERE status = $1', ['pending']);
-        const pendingCredits = await pool.query('SELECT * FROM credit_requests WHERE status = $1', ['pending']);
-        const pendingDeposits = await pool.query('SELECT * FROM deposit_requests WHERE status = $1', ['pending']);
-
-        // Debtor clients
-        const debtorClients = await pool.query('SELECT * FROM users WHERE id IN (SELECT user_id FROM credits WHERE status = $1 AND due_date < NOW())', ['approved']);
-        const closeToDueClients = await pool.query('SELECT * FROM users WHERE id IN (SELECT user_id FROM credits WHERE status = $1 AND due_date < NOW() + INTERVAL \'7 days\' AND due_date > NOW())', ['approved']);
+    try {
+        const solicitudes = await pool.query('SELECT * FROM credit_requests WHERE status = $1 ORDER BY created_at DESC', ['pending']);
+        const retiros = await pool.query('SELECT * FROM withdrawal_requests WHERE status = $1 ORDER BY created_at DESC', ['pending']);
+        const capital = await pool.query('SELECT capital FROM capital_banco WHERE id = 1');
+        const usuarios = await pool.query('SELECT id, nombres, apellidos, cedula, correo, role FROM users'); // Corregido: 'rol' a 'role'
 
         res.status(200).json({
-            bankCapital,
-            lentMoney,
-            clientCapital,
-            capitalHistory,
-            pendingUsers: pendingUsers.rows,
-            pendingWithdrawals: pendingWithdrawals.rows,
-            pendingCredits: pendingCredits.rows,
-            pendingDeposits: pendingDeposits.rows,
-            debtorClients: debtorClients.rows,
-            closeToDueClients: closeToDueClients.rows
+            solicitudes: solicitudes.rows,
+            retiros: retiros.rows,
+            capital: capital.rows[0].capital,
+            usuarios: usuarios.rows
         });
-
     } catch (err) {
-        console.error('Error fetching admin data:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al obtener datos del administrador:', err);
+        res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
 
-// 6. Manage Admin Capital Endpoint
-app.post('/api/admin/capital', async (req, res) => {
-    const { action, amount, reason } = req.body;
+// 7. Endpoint para gestionar capital
+app.post('/api/admin/capital', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'administrador') {
+        return res.status(403).json({ message: 'Acceso denegado.' });
+    }
+
+    const { accion, monto, motivo } = req.body;
+    const client = await pool.connect();
     try {
-        if (action === 'add') {
-            await pool.query('UPDATE bank_capital SET capital = capital + $1 WHERE id = 1', [amount]);
-            await pool.query('INSERT INTO capital_history (amount, transaction_type, description) VALUES ($1, $2, $3)', [amount, 'add', reason]);
-        } else if (action === 'reduce') {
-            await pool.query('UPDATE bank_capital SET capital = capital - $1 WHERE id = 1', [amount]);
-            await pool.query('INSERT INTO capital_history (amount, transaction_type, description) VALUES ($1, $2, $3)', [-amount, 'reduce', reason]);
+        await client.query('BEGIN');
+        const currentCapital = await client.query('SELECT capital FROM capital_banco WHERE id = 1 FOR UPDATE');
+        const capitalValue = parseFloat(currentCapital.rows[0].capital);
+
+        if (accion === 'aumentar') {
+            await client.query('UPDATE capital_banco SET capital = capital + $1 WHERE id = 1', [monto]);
+            await client.query('INSERT INTO capital_history (amount, transaction_type, description) VALUES ($1, $2, $3)', [monto, 'aumento', motivo]);
+        } else if (accion === 'reducir') {
+            if (capitalValue < monto) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ message: 'No se puede reducir el capital por debajo de 0.' });
+            }
+            await client.query('UPDATE capital_banco SET capital = capital - $1 WHERE id = 1', [monto]);
+            await client.query('INSERT INTO capital_history (amount, transaction_type, description) VALUES ($1, $2, $3)', [-monto, 'reduccion', motivo]);
         } else {
-            return res.status(400).json({ message: 'Invalid action.' });
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'Acción inválida.' });
         }
-        res.status(200).json({ message: 'Bank capital updated successfully.' });
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Capital del banco actualizado con éxito.' });
     } catch (err) {
-        console.error('Error managing capital:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al gestionar capital:', err);
+        await client.query('ROLLBACK');
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    } finally {
+        client.release();
     }
 });
 
-// 7. Admin Action Endpoint (Approve/Reject)
-app.post('/api/admin/action', async (req, res) => {
-    const { type, id, action } = req.body;
+// 8. Endpoint para aprobar solicitudes de crédito
+app.post('/api/admin/aprobar_credito', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'administrador') {
+        return res.status(403).json({ message: 'Acceso denegado.' });
+    }
+    const { solicitudId } = req.body;
+    const client = await pool.connect();
     try {
-        if (type === 'user') {
-            if (action === 'approve') {
-                await pool.query('UPDATE users SET status = $1, current_balance = $2 WHERE id = $3', ['active', 1.00, id]);
-                // Add initial $1 transaction
-                const adminId = 'your-admin-id'; // You need to set a static admin ID
-                await pool.query('INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type) VALUES ($1, $2, $3, $4)', [adminId, id, 1.00, 'deposit']);
-            } else if (action === 'reject') {
-                await pool.query('DELETE FROM users WHERE id = $1', [id]);
-            }
-        } else if (type === 'withdrawal') {
-            if (action === 'approve') {
-                const withdrawal = await pool.query('SELECT * FROM withdrawal_requests WHERE id = $1', [id]);
-                const withdrawalData = withdrawal.rows[0];
-                await pool.query('UPDATE withdrawal_requests SET status = $1 WHERE id = $2', ['approved', id]);
-                await pool.query('UPDATE users SET current_balance = current_balance - $1 WHERE id = $2', [withdrawalData.amount, withdrawalData.user_id]);
-                await pool.query('INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type) VALUES ($1, $2, $3, $4)', [withdrawalData.user_id, 'your-admin-id', withdrawalData.amount, 'withdrawal']);
-            } else if (action === 'reject') {
-                await pool.query('UPDATE withdrawal_requests SET status = $1 WHERE id = $2', ['rejected', id]);
-            }
-        } else if (type === 'credit') {
-            if (action === 'approve') {
-                const credit = await pool.query('SELECT * FROM credit_requests WHERE id = $1', [id]);
-                const creditData = credit.rows[0];
-                const totalAmountDue = creditData.amount * 1.10;
-                const dueDate = new Date();
-                dueDate.setDate(dueDate.getDate() + creditData.term_in_days);
-                await pool.query('UPDATE credit_requests SET status = $1 WHERE id = $2', ['approved', id]);
-                await pool.query('INSERT INTO credits (user_id, amount, total_amount_due, term_in_days, due_date, status) VALUES ($1, $2, $3, $4, $5, $6)', [creditData.user_id, creditData.amount, totalAmountDue, creditData.term_in_days, dueDate, 'approved']);
-                await pool.query('UPDATE users SET current_balance = current_balance + $1 WHERE id = $2', [creditData.amount, creditData.user_id]);
-                await pool.query('UPDATE bank_capital SET capital = capital - $1 WHERE id = 1', [creditData.amount]);
-                await pool.query('INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type) VALUES ($1, $2, $3, $4)', ['your-admin-id', creditData.user_id, creditData.amount, 'credit']);
-            } else if (action === 'reject') {
-                await pool.query('UPDATE credit_requests SET status = $1 WHERE id = $2', ['rejected', id]);
-            }
-        } else if (type === 'deposit') {
-            if (action === 'approve') {
-                const deposit = await pool.query('SELECT * FROM deposit_requests WHERE id = $1', [id]);
-                const depositData = deposit.rows[0];
-                const activeCredit = await pool.query('SELECT * FROM credits WHERE user_id = $1 AND status = $2', [depositData.user_id, 'approved']);
-                if (activeCredit.rows.length > 0) {
-                    const credit = activeCredit.rows[0];
-                    const newTotalDue = credit.total_amount_due - depositData.amount;
-                    await pool.query('UPDATE credits SET total_amount_due = $1 WHERE id = $2', [newTotalDue, credit.id]);
-                } else {
-                    await pool.query('UPDATE users SET current_balance = current_balance + $1 WHERE id = $2', [depositData.amount, depositData.user_id]);
-                }
-                await pool.query('UPDATE bank_capital SET capital = capital + $1 WHERE id = 1', [depositData.amount]);
-                await pool.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['approved', id]);
-                await pool.query('INSERT INTO transactions (sender_id, receiver_id, amount, transaction_type) VALUES ($1, $2, $3, $4)', [depositData.user_id, 'your-admin-id', depositData.amount, 'deposit']);
-            } else if (action === 'reject') {
-                await pool.query('UPDATE deposit_requests SET status = $1 WHERE id = $2', ['rejected', id]);
-            }
-        } else {
-            return res.status(400).json({ message: 'Invalid action type.' });
+        await client.query('BEGIN');
+        const solicitud = await client.query('SELECT * FROM credit_requests WHERE id = $1 FOR UPDATE', [solicitudId]);
+        if (solicitud.rows.length === 0 || solicitud.rows[0].status !== 'pending') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'Solicitud no válida o ya procesada.' });
         }
-        res.status(200).json({ message: `Request successfully ${action}ed.` });
+        const { user_id, amount, plazo } = solicitud.rows[0];
+
+        // Actualizar el saldo de la cuenta del usuario
+        await client.query('UPDATE cuentas SET balance = balance + $1 WHERE user_id = $2', [amount, user_id]);
+        // Insertar un nuevo crédito
+        await client.query('INSERT INTO creditos (user_id, monto, plazo, estado) VALUES ($1, $2, $3, $4)', [user_id, amount, plazo, 'active']);
+        // Marcar la solicitud como aprobada
+        await client.query('UPDATE credit_requests SET status = $1 WHERE id = $2', ['approved', solicitudId]);
+
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Crédito aprobado con éxito.' });
     } catch (err) {
-        console.error('Error with admin action:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al aprobar crédito:', err);
+        await client.query('ROLLBACK');
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    } finally {
+        client.release();
     }
 });
 
-// 8. Admin Client Management Endpoint
-app.get('/api/admin/clients', async (req, res) => {
-    try {
-        const clients = await pool.query('SELECT id, first_name, last_name, id_card, email, phone, address, province, city, current_balance FROM users WHERE role = $1 AND status = $2', ['client', 'active']);
-        res.status(200).json(clients.rows);
-    } catch (err) {
-        console.error('Error fetching client list for admin:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+// 9. Endpoint para obtener el historial del capital
+app.get('/api/admin/capital/historial', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'administrador') {
+        return res.status(403).json({ message: 'Acceso denegado.' });
     }
-});
-
-// 9. Admin Search Client Endpoint
-app.get('/api/admin/clients/:id', async (req, res) => {
-    const { id } = req.params;
     try {
-        const client = await pool.query('SELECT id, first_name, last_name, id_card, email, phone, address, province, city, current_balance FROM users WHERE id = $1', [id]);
-        if (!client.rows.length) {
-            return res.status(404).json({ message: 'Client not found.' });
-        }
-        res.status(200).json(client.rows[0]);
-    } catch (err) {
-        console.error('Error fetching single client data:', err);
-        res.status(500).json({ message: 'Internal server error.' });
-    }
-});
-
-// 10. Admin Update Client Endpoint
-app.put('/api/admin/clients/:id', async (req, res) => {
-    const { id } = req.params;
-    const { firstName, lastName, idCard, email, phone, address, province, city, currentBalance } = req.body;
-    try {
-        await pool.query(
-            'UPDATE users SET first_name = $1, last_name = $2, id_card = $3, email = $4, phone = $5, address = $6, province = $7, city = $8, current_balance = $9 WHERE id = $10',
-            [firstName, lastName, idCard, email, phone, address, province, city, currentBalance, id]
+        const historial = await pool.query(
+            'SELECT created_at, amount, transaction_type, description FROM capital_history ORDER BY created_at DESC LIMIT 30'
         );
-        res.status(200).json({ message: 'Client information updated successfully.' });
+        res.status(200).json(historial.rows);
     } catch (err) {
-        console.error('Error updating client data:', err);
-        res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error al obtener el historial de capital:', err);
+        res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
 
 // --------------------------------------------------------------------------
-// --- Start the Server ---
+// --- Iniciar el Servidor (ESTA LÍNEA DEBE IR AL FINAL) ---\
 // --------------------------------------------------------------------------
 
 app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
+    console.log(`Servidor escuchando en http://localhost:${port}`);
 });
