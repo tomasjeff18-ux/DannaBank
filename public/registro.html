@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - Danna Bank</title>
+    <title>Register - Danna Bank</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -43,30 +43,21 @@
             margin: 10px 0;
             border: 1px solid #ddd;
             border-radius: 5px;
-            box-sizing: border-box;
         }
         button {
-            background-color: #FFD700;
-            color: #001f3f;
-            padding: 12px 20px;
+            background-color: #001f3f;
+            color: #fff;
+            padding: 10px 20px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             width: 100%;
-            font-size: 16px;
+            font-size: 1em;
             font-weight: bold;
             transition: background-color 0.3s ease;
         }
         button:hover {
-            background-color: #e6c200;
-        }
-        a {
-            color: #001f3f;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        a:hover {
-            text-decoration: underline;
+            background-color: #003366;
         }
     </style>
 </head>
@@ -74,23 +65,23 @@
 
     <div class="container">
         <div class="logo">
-            <img src="Logo/Gemini_Generated_Image_xpx9nxxpx9nxxpx9.png" alt="Danna Bank Logo">
+            <img src="https://i.ibb.co/6P06Fj1/icono.png" alt="Danna Bank Logo">
         </div>
-        <h2>Registro de Cliente</h2>
+        <h2>Register</h2>
         <form id="registroForm">
-            <input type="text" id="nombres" name="nombres" placeholder="Nombres" required>
-            <input type="text" id="apellidos" name="apellidos" placeholder="Apellidos" required>
-            <input type="text" id="cedula" name="cedula" placeholder="Número de Cédula" required>
-            <input type="email" id="correo" name="correo" placeholder="Correo Electrónico" required>
-            <input type="password" id="contrasena" name="contrasena" placeholder="Contraseña" required>
-            <input type="tel" id="telefono" name="telefono" placeholder="Teléfono">
-            <input type="text" id="direccion" name="direccion" placeholder="Dirección">
-            <input type="text" id="provincia" name="provincia" placeholder="Provincia">
-            <input type="text" id="ciudad" name="ciudad" placeholder="Ciudad">
-            <input type="text" id="cedula_recomendador" name="cedula_recomendador" placeholder="Cédula de Recomendador">
-            <button type="submit">Registrarse</button>
+            <input type="text" id="nombres" name="nombres" placeholder="First Name" required>
+            <input type="text" id="apellidos" name="apellidos" placeholder="Last Name" required>
+            <input type="text" id="cedula" name="cedula" placeholder="ID Number" required>
+            <input type="email" id="correo" name="correo" placeholder="Email" required>
+            <input type="password" id="contrasena" name="contrasena" placeholder="Password" required>
+            <input type="tel" id="telefono" name="telefono" placeholder="Phone">
+            <input type="text" id="direccion" name="direccion" placeholder="Address">
+            <input type="text" id="provincia" name="provincia" placeholder="Province">
+            <input type="text" id="ciudad" name="ciudad" placeholder="City">
+            <input type="text" id="cedula_recomendador" name="cedula_recomendador" placeholder="Referrer ID Number">
+            <button type="submit">Register</button>
         </form>
-        <p style="margin-top: 20px;">¿Ya eres usuario? <a href="index.html">Inicia Sesión</a></p>
+        <p style="margin-top: 20px;">Already a user? <a href="index.html">Login</a></p>
     </div>
 
     <script>
@@ -106,7 +97,7 @@
                 });
                 const result = await response.json();
                 if (response.status === 409) {
-                    alert('El correo o la cédula ya están registrados. Serás redirigido para iniciar sesión.');
+                    alert('The email or ID number is already registered. You will be redirected to log in.');
                     window.location.href = 'index.html';
                 } else if (response.status === 201) {
                     alert(result.message);
@@ -115,8 +106,8 @@
                     alert(result.message);
                 }
             } catch (err) {
-                console.error('Error al enviar el formulario:', err);
-                alert('Hubo un error al procesar tu solicitud.');
+                console.error('Error submitting form:', err);
+                alert('There was an error processing your request.');
             }
         });
     </script>
