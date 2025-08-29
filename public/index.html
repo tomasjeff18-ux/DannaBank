@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Danna Bank</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #001f3f;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .logo {
+            margin-bottom: 20px;
+        }
+        .logo img {
+            width: 150px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        input[type="email"],
+        input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #FFD700;
+            color: #001f3f;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #e6c200;
+        }
+        a {
+            color: #001f3f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">
+            <img src="Logo/Gemini_Generated_Image_xpx9nxxpx9nxxpx9.png" alt="Danna Bank Logo">
+        </div>
+        <h2>Iniciar Sesión</h2>
+        <form id="loginForm">
+            <input type="email" id="correo" name="correo" placeholder="Correo Electrónico" required><br>
+            <input type="password" id="contrasena" name="contrasena" placeholder="Contraseña" required><br>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+        <p style="margin-top: 20px;">¿No tienes cuenta? <a href="registro.html">Regístrate</a></p>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    sessionStorage.setItem('user', JSON.stringify(result.user));
+                    sessionStorage.setItem('rol', result.rol);
+                    alert(result.message);
+                    if (result.rol === 'cliente') {
+                        window.location.href = 'panel_cliente.html';
+                    } else if (result.rol === 'administrador') {
+                        window.location.href = 'panel_admin.html';
+                    }
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                console.error('Error al iniciar sesión:', err);
+                alert('Hubo un error al procesar tu solicitud.');
+            }
+        });
+    </script>
+
+</body>
+</html>
