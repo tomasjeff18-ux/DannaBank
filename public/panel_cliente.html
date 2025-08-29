@@ -1,389 +1,240 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Cliente - Danna Bank</title>
+    <title>Client Panel - Danna Bank</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            color: #001f3f;
-            margin: 0;
-            padding: 20px;
-        }
-        .header {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .header .logo img {
-            height: 40px;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 1.5em;
-        }
-        .header button {
-            background-color: #FFD700;
-            color: #001f3f;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .header button:hover {
-            background-color: #FFC400;
-        }
-        .info-card, .form-card, .table-card {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        h2 {
-            margin-top: 0;
-            font-weight: bold;
-        }
-        .user-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            font-size: 1.1em;
-        }
-        .user-info p span {
-            font-weight: bold;
-        }
-        form label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        form input, form select, form textarea, form button {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        form button {
-            background-color: #001f3f;
-            color: #fff;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        form button:hover {
-            background-color: #003366;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #e9e9e9;
-        }
-        .message-box {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 15px;
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            display: none;
-            min-width: 300px;
-            text-align: center;
-        }
-        .message-box.show {
-            display: block;
+            font-family: 'Inter', sans-serif;
         }
     </style>
 </head>
-<body>
-    <div id="messageBox" class="message-box"></div>
 
-    <div class="header">
-        <div class="logo">
-            <img src="Logo/Gemini_Generated_Image_xpx9nxxpx9nxxpx9.png" alt="Danna Bank Logo">
+<body class="bg-blue-900 text-gray-100 p-6 min-h-screen">
+    <div class="container mx-auto">
+        <header class="flex justify-between items-center bg-white text-blue-900 p-6 rounded-xl shadow-lg mb-6">
+            <div class="flex items-center">
+                <h1 class="text-xl md:text-2xl font-bold">Client Panel</h1>
+            </div>
+            <button onclick="logout()"
+                class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
+                Log Out
+            </button>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <section class="bg-white text-gray-800 p-6 rounded-xl shadow-lg md:col-span-2">
+                <h2 class="text-xl font-bold mb-4">Welcome, <span id="userName"></span>!</h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center bg-gray-100 p-4 rounded-lg">
+                        <span class="font-semibold">Current Balance:</span>
+                        <span id="currentBalance" class="text-2xl font-bold text-green-600"></span>
+                    </div>
+
+                    <div id="creditDue" class="hidden p-4 rounded-lg bg-red-100 text-red-800">
+                        <p class="font-bold">Credit overdue! Please pay the total amount of your credit.</p>
+                    </div>
+
+                    <div id="creditInfo" class="hidden bg-yellow-100 text-yellow-800 p-4 rounded-lg">
+                        <p><span class="font-bold">Active Credit:</span> <span id="creditAmount"></span></p>
+                        <p><span class="font-bold">Due Date:</span> <span id="creditDueDate"></span></p>
+                        <p><span class="font-bold">Days until due:</span> <span id="daysUntilDue"></span></p>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-semibold mb-2">Last 10 Movements</h3>
+                    <div class="bg-gray-100 p-4 rounded-lg max-h-64 overflow-y-auto">
+                        <ul id="movementsList" class="space-y-2">
+                            <!-- Movements will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white text-gray-800 p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Make a Request</h2>
+                <form id="requestsForm" class="space-y-4">
+                    <div>
+                        <label for="requestType" class="block text-sm font-medium text-gray-700">Request Type</label>
+                        <select id="requestType" name="type" onchange="toggleFields()"
+                            class="mt-1 block w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="withdrawal">Withdrawal Request</option>
+                            <option value="credit">Credit Request</option>
+                            <option value="deposit">Deposit Request</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                        <input type="number" id="amount" name="amount" required step="0.01" min="0.01"
+                            class="mt-1 block w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div id="bankGroup">
+                        <label for="bank" class="block text-sm font-medium text-gray-700">Bank</label>
+                        <input type="text" id="bank" name="bank"
+                            class="mt-1 block w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div id="accountGroup">
+                        <label for="accountNumber" class="block text-sm font-medium text-gray-700">Account Number</label>
+                        <input type="text" id="accountNumber" name="accountNumber"
+                            class="mt-1 block w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div id="termGroup" class="hidden">
+                        <label for="term" class="block text-sm font-medium text-gray-700">Term (in days, max 30)</label>
+                        <input type="number" id="term" name="termInDays" min="1" max="30"
+                            class="mt-1 block w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-yellow-500 text-blue-900 font-bold py-3 rounded-lg hover:bg-yellow-600 transition-colors">
+                        Submit Request
+                    </button>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <div id="messageModal"
+        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm mx-auto text-center">
+            <p id="modalMessage" class="text-gray-800 mb-4"></p>
+            <button onclick="closeModal()"
+                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                OK
+            </button>
         </div>
-        <h1>Panel de Cliente</h1>
-        <button onclick="logout()">Cerrar Sesión</button>
     </div>
-
-    <div class="info-card">
-        <h2>Bienvenido, <span id="nombreUsuario"></span></h2>
-        <div class="user-info">
-            <p>Saldo Actual: <span id="saldo"></span></p>
-            <p>Cédula: <span id="cedulaUsuario"></span></p>
-            <p>Correo: <span id="correoUsuario"></span></p>
-        </div>
-    </div>
-
-    <div class="form-card">
-        <h2>Realizar Transferencia</h2>
-        <form id="transferenciaForm">
-            <label for="cedula_receptor">Cédula del Receptor:</label>
-            <input type="text" id="cedula_receptor" name="cedula_receptor" required>
-
-            <label for="montoTransferencia">Monto:</label>
-            <input type="number" id="montoTransferencia" name="monto" min="0.01" step="0.01" required>
-
-            <label for="motivoTransferencia">Motivo:</label>
-            <textarea id="motivoTransferencia" name="motivo" rows="2"></textarea>
-
-            <button type="submit">Transferir</button>
-        </form>
-    </div>
-
-    <div class="form-card">
-        <h2>Enviar Solicitud</h2>
-        <form id="solicitudesForm">
-            <label for="tipo">Tipo de Solicitud:</label>
-            <select id="tipo" name="tipo" onchange="toggleFields()">
-                <option value="deposito">Depósito</option>
-                <option value="retiro">Retiro</option>
-                <option value="credito">Crédito</option>
-            </select>
-
-            <label for="montoSolicitud">Monto:</label>
-            <input type="number" id="montoSolicitud" name="monto" min="0.01" step="0.01" required>
-
-            <div id="bancoGroup">
-                <label for="banco_externo">Nombre del Banco Externo:</label>
-                <input type="text" id="banco_externo" name="banco_externo">
-            </div>
-
-            <div id="cuentaGroup">
-                <label for="cuenta_externa">Número de Cuenta Externa:</label>
-                <input type="text" id="cuenta_externa" name="cuenta_externa">
-            </div>
-
-            <div id="plazoGroup" style="display:none;">
-                <label for="plazo">Plazo (meses):</label>
-                <input type="number" id="plazo" name="plazo_meses" min="12" step="12">
-            </div>
-
-            <button type="submit">Enviar Solicitud</button>
-        </form>
-    </div>
-
-    <div class="table-card">
-        <h2>Historial de Transacciones</h2>
-        <table id="historialTable">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Descripción</th>
-                    <th>Monto</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Se llenará con JS -->
-            </tbody>
-        </table>
-    </div>
-    
-    <div class="table-card">
-        <h2>Historial de Solicitudes</h2>
-        <table id="solicitudesTable">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Monto</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Se llenará con JS -->
-            </tbody>
-        </table>
-    </div>
-
 
     <script>
-        function showMessage(message, type = 'info') {
-            const messageBox = document.getElementById('messageBox');
-            messageBox.textContent = message;
-            messageBox.style.backgroundColor = type === 'error' ? '#f8d7da' : '#d4edda';
-            messageBox.style.color = type === 'error' ? '#721c24' : '#155724';
-            messageBox.style.border = type === 'error' ? '1px solid #f5c6cb' : '1px solid #c3e6cb';
-            messageBox.classList.add('show');
-            setTimeout(() => {
-                messageBox.classList.remove('show');
-            }, 3000);
-        }
+        const showMessage = (message) => {
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('messageModal').classList.remove('hidden');
+        };
 
-        async function cargarDatos() {
+        const closeModal = () => {
+            document.getElementById('messageModal').classList.add('hidden');
+        };
+
+        const loadData = async () => {
             const user = JSON.parse(sessionStorage.getItem('user'));
-            const token = sessionStorage.getItem('token');
-
-            if (!user || !token) {
-                window.location.href = 'index.html';
+            if (!user) {
+                window.location.href = 'login.html';
                 return;
             }
 
-            document.getElementById('nombreUsuario').textContent = user.nombres;
-            document.getElementById('cedulaUsuario').textContent = user.cedula;
-            document.getElementById('correoUsuario').textContent = user.correo;
+            document.getElementById('userName').textContent = `${user.firstName} ${user.lastName}`;
 
             try {
-                // Cargar saldo
-                const saldoResponse = await fetch('/api/usuario', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const saldoData = await saldoResponse.json();
-                document.getElementById('saldo').textContent = `$${saldoData.saldo.toFixed(2)}`;
-                
-                // Cargar historial de transacciones
-                const historialResponse = await fetch('/api/usuario/historial', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const historial = await historialResponse.json();
-                const historialTableBody = document.querySelector('#historialTable tbody');
-                historialTableBody.innerHTML = '';
-                historial.forEach(item => {
-                    const row = historialTableBody.insertRow();
-                    row.insertCell(0).textContent = new Date(item.fecha).toLocaleString();
-                    row.insertCell(1).textContent = item.descripcion;
-                    row.insertCell(2).textContent = `$${item.monto.toFixed(2)}`;
-                });
+                const response = await fetch(`/api/client/data/${user.id}`);
+                const data = await response.json();
 
-                // Cargar historial de solicitudes
-                const solicitudesResponse = await fetch('/api/cliente/solicitudes/historial', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const solicitudes = await solicitudesResponse.json();
-                const solicitudesTableBody = document.querySelector('#solicitudesTable tbody');
-                solicitudesTableBody.innerHTML = '';
-                solicitudes.forEach(item => {
-                    const row = solicitudesTableBody.insertRow();
-                    row.insertCell(0).textContent = new Date(item.fecha_solicitud).toLocaleString();
-                    row.insertCell(1).textContent = item.tipo;
-                    row.insertCell(2).textContent = `$${item.monto.toFixed(2)}`;
-                    row.insertCell(3).textContent = item.estado;
-                });
+                if (response.ok) {
+                    document.getElementById('currentBalance').textContent = `$${data.user.current_balance}`;
+
+                    const movementsList = document.getElementById('movementsList');
+                    movementsList.innerHTML = '';
+                    if (data.movements.length > 0) {
+                        data.movements.forEach(movement => {
+                            const li = document.createElement('li');
+                            const date = new Date(movement.created_at).toLocaleString();
+                            const sign = movement.transaction_type === 'withdrawal' ? '-' : '+';
+                            li.textContent = `${date}: ${sign}$${movement.amount} (${movement.transaction_type})`;
+                            li.classList.add('p-2', 'rounded-lg', 'bg-gray-50');
+                            movementsList.appendChild(li);
+                        });
+                    } else {
+                        movementsList.innerHTML = '<li class="p-2 text-center text-gray-500">No movements yet.</li>';
+                    }
+
+                    if (data.activeCredit) {
+                        const creditInfo = document.getElementById('creditInfo');
+                        creditInfo.classList.remove('hidden');
+                        document.getElementById('creditAmount').textContent = `$${data.activeCredit.total_amount_due}`;
+                        const dueDate = new Date(data.activeCredit.due_date);
+                        document.getElementById('creditDueDate').textContent = dueDate.toLocaleDateString();
+
+                        const today = new Date();
+                        const daysRemaining = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                        document.getElementById('daysUntilDue').textContent = `${daysRemaining} days`;
+
+                        if (daysRemaining < 0) {
+                            document.getElementById('creditInfo').classList.add('hidden');
+                            document.getElementById('creditDue').classList.remove('hidden');
+                        }
+                    } else {
+                        document.getElementById('creditInfo').classList.add('hidden');
+                        document.getElementById('creditDue').classList.add('hidden');
+                    }
+                } else {
+                    showMessage(data.message);
+                }
             } catch (err) {
-                console.error('Error al cargar datos:', err);
-                showMessage('Error al cargar los datos del usuario.', 'error');
+                console.error('Error fetching data:', err);
+                showMessage('An error occurred while loading your data.');
             }
-        }
+        };
 
-        async function enviarTransferencia(event) {
+        const toggleFields = () => {
+            const type = document.getElementById('requestType').value;
+            document.getElementById('bankGroup').classList.add('hidden');
+            document.getElementById('accountGroup').classList.add('hidden');
+            document.getElementById('termGroup').classList.add('hidden');
+
+            if (type === 'withdrawal' || type === 'deposit') {
+                document.getElementById('bankGroup').classList.remove('hidden');
+                if (type === 'withdrawal') {
+                    document.getElementById('accountGroup').classList.remove('hidden');
+                }
+            } else if (type === 'credit') {
+                document.getElementById('termGroup').classList.remove('hidden');
+            }
+        };
+
+        document.getElementById('requestsForm').addEventListener('submit', async function (event) {
             event.preventDefault();
-            const form = document.getElementById('transferenciaForm');
-            const formData = new FormData(form);
+            const user = JSON.parse(sessionStorage.getItem('user'));
+            const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
-            data.monto = parseFloat(data.monto);
-            const token = sessionStorage.getItem('token');
+            data.userId = user.id;
+            data.amount = parseFloat(data.amount);
+
             try {
-                const response = await fetch('/api/transferencia', {
+                const response = await fetch('/api/client/request', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
+                showMessage(result.message);
                 if (response.ok) {
-                    showMessage(result.message);
-                    cargarDatos();
-                    form.reset();
-                } else {
-                    showMessage(result.message, 'error');
+                    loadData();
+                    this.reset();
                 }
             } catch (err) {
-                console.error('Error al enviar la transferencia:', err);
-                showMessage('Error al procesar la transferencia.', 'error');
+                console.error('Error sending request:', err);
+                showMessage('An error occurred while sending your request.');
             }
-        }
-
-        async function enviarSolicitud(event) {
-            event.preventDefault();
-            const form = document.getElementById('solicitudesForm');
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            data.monto = parseFloat(data.monto);
-            if (data.plazo_meses) {
-                data.plazo_meses = parseInt(data.plazo_meses);
-            }
-            const token = sessionStorage.getItem('token');
-            try {
-                const response = await fetch('/api/cliente/solicitud', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    showMessage(result.message);
-                    cargarDatos();
-                    form.reset();
-                } else {
-                    showMessage(result.message, 'error');
-                }
-            } catch (err) {
-                console.error('Error al enviar la solicitud:', err);
-                showMessage('Error al enviar la solicitud.', 'error');
-            }
-        }
-
-        function toggleFields() {
-            const tipo = document.getElementById('tipo').value;
-            document.getElementById('bancoGroup').style.display = 'none';
-            document.getElementById('cuentaGroup').style.display = 'none';
-            document.getElementById('plazoGroup').style.display = 'none';
-            
-            document.getElementById('banco_externo').removeAttribute('required');
-            document.getElementById('cuenta_externa').removeAttribute('required');
-            document.getElementById('plazo').removeAttribute('required');
-            
-            if (tipo === 'deposito' || tipo === 'retiro') {
-                document.getElementById('bancoGroup').style.display = 'block';
-                document.getElementById('cuentaGroup').style.display = 'block';
-                document.getElementById('banco_externo').setAttribute('required', 'required');
-                document.getElementById('cuenta_externa').setAttribute('required', 'required');
-            } else if (tipo === 'credito') {
-                document.getElementById('plazoGroup').style.display = 'block';
-                document.getElementById('plazo').setAttribute('required', 'required');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            cargarDatos();
-            toggleFields();
         });
-        
-        document.getElementById('transferenciaForm').addEventListener('submit', enviarTransferencia);
-        document.getElementById('solicitudesForm').addEventListener('submit', enviarSolicitud);
 
-        function logout() {
+        const logout = () => {
             sessionStorage.clear();
-            window.location.href = 'index.html';
-        }
+            window.location.href = 'login.html';
+        };
+
+        window.onload = () => {
+            loadData();
+            toggleFields();
+        };
     </script>
 </body>
+
 </html>
