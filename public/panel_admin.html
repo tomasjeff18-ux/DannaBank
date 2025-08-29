@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Danna Bank</title>
+    <title>Panel de Administrador - Danna Bank</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -40,355 +40,302 @@
             transition: background-color 0.3s ease;
         }
         .header button:hover {
-            background-color: #e6c200;
+            background-color: #FFC400;
         }
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .card {
+        .info-card, .form-card, .table-card {
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
-        .card h3 {
+        h2 {
+            margin-top: 0;
+            font-weight: bold;
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .data-card {
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #e9e9e9;
+        }
+        .data-card h3 {
             margin-top: 0;
             font-size: 1.2em;
         }
-        .card-requests table {
+        .data-card p {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #003366;
+        }
+        form label, form input, form textarea, form button {
+            display: block;
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            margin-bottom: 10px;
         }
-        .card-requests th, .card-requests td {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
+        form input, form textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
         }
-        .card-requests th {
-            background-color: #f9f9f9;
-        }
-        .btn-action {
-            padding: 5px 10px;
+        form button {
+            background-color: #001f3f;
+            color: #fff;
+            padding: 15px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            transition: background-color 0.3s ease;
         }
-        .btn-approve {
-            background-color: #28a745;
-            color: white;
-        }
-        .btn-reject {
-            background-color: #dc3545;
-            color: white;
-        }
-        .btn-action:hover {
-            opacity: 0.8;
-        }
-        .capital-section {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .capital-section input, .capital-section button {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .capital-section button {
-            background-color: #001f3f;
-            color: white;
-            cursor: pointer;
-        }
-        .capital-section button:hover {
+        form button:hover {
             background-color: #003366;
         }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
+        table {
             width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            width: 80%;
-            max-width: 600px;
-        }
-        .modal-content table {
-            width: 100%;
-            margin-top: 15px;
             border-collapse: collapse;
+            margin-top: 15px;
         }
-        .modal-content th, .modal-content td {
+        th, td {
             text-align: left;
-            padding: 8px;
+            padding: 12px;
             border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #e9e9e9;
+        }
+        .action-buttons button {
+            margin-right: 5px;
+        }
+        .message-box {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: none;
+            min-width: 300px;
+            text-align: center;
+        }
+        .message-box.show {
+            display: block;
         }
     </style>
 </head>
 <body>
+    <div id="messageBox" class="message-box"></div>
 
     <div class="header">
         <div class="logo">
-            <img src="https://i.ibb.co/6P06Fj1/icono.png" alt="Danna Bank Logo">
+            <img src="Logo/Gemini_Generated_Image_xpx9nxxpx9nxxpx9.png" alt="Danna Bank Logo">
         </div>
-        <h1>Admin Dashboard</h1>
-        <button onclick="logout()">Logout</button>
+        <h1>Panel de Administrador</h1>
+        <button onclick="logout()">Cerrar Sesión</button>
     </div>
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <h3>Bank Capital: $<span id="capitalBanco">0.00</span></h3>
-            <div class="capital-section">
-                <h4>Manage Capital</h4>
-                <input type="number" id="montoCapital" placeholder="Amount">
-                <input type="text" id="motivoCapital" placeholder="Reason (e.g., 'Initial Capital')">
-                <button onclick="gestionarCapital('agregar')">Add Capital</button>
-                <button onclick="gestionarCapital('reducir')">Reduce Capital</button>
+    <div class="info-card">
+        <h2>Datos del Banco</h2>
+        <div class="data-grid">
+            <div class="data-card">
+                <h3>Capital Total</h3>
+                <p id="capitalTotal">$0.00</p>
             </div>
-            <button onclick="toggleModal('capitalHistoryModal')">View Capital History</button>
-        </div>
-
-        <div class="card card-requests">
-            <h3>Pending Deposit Requests</h3>
-            <table id="depositosTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>User</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-
-        <div class="card card-requests">
-            <h3>Pending Withdrawal Requests</h3>
-            <table id="retirosTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>User</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-
-        <div class="card card-requests">
-            <h3>Pending Loan Requests</h3>
-            <table id="creditosTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>User</th>
-                        <th>Amount</th>
-                        <th>Term (days)</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
         </div>
     </div>
 
-    <div id="capitalHistoryModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="toggleModal('capitalHistoryModal')">&times;</span>
-            <h3>Capital History</h3>
-            <table id="capitalHistoryTable">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Reason</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
+    <div class="form-card">
+        <h2>Gestionar Capital</h2>
+        <form id="capitalForm">
+            <label for="montoCapital">Monto:</label>
+            <input type="number" id="montoCapital" min="0.01" step="0.01" required>
+            <label for="motivoCapital">Motivo:</label>
+            <textarea id="motivoCapital" rows="2" required></textarea>
+            <button type="button" onclick="gestionarCapital('aumentar')">Aumentar Capital</button>
+            <button type="button" onclick="gestionarCapital('reducir')">Reducir Capital</button>
+        </form>
+    </div>
+    
+    <div class="table-card">
+        <h2>Solicitudes Pendientes</h2>
+        <table id="solicitudesTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario ID</th>
+                    <th>Tipo</th>
+                    <th>Monto</th>
+                    <th>Banco Externo</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Se llenará con JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-card">
+        <h2>Listado de Clientes</h2>
+        <table id="clientesTable">
+            <thead>
+                <tr>
+                    <th>Cédula</th>
+                    <th>Nombres</th>
+                    <th>Apellidos</th>
+                    <th>Saldo</th>
+                    <th>Correo</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Se llenará con JS -->
+            </tbody>
+        </table>
     </div>
 
     <script>
-        // Check session role on page load
-        const role = sessionStorage.getItem('role');
-        if (role !== 'admin') {
-            alert('You do not have permission to access this page.');
-            window.location.href = 'index.html';
+        function showMessage(message, type = 'info') {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.style.backgroundColor = type === 'error' ? '#f8d7da' : '#d4edda';
+            messageBox.style.color = type === 'error' ? '#721c24' : '#155724';
+            messageBox.style.border = type === 'error' ? '1px solid #f5c6cb' : '1px solid #c3e6cb';
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
         }
 
         async function cargarDatosAdmin() {
+            const token = sessionStorage.getItem('token');
+            const rol = sessionStorage.getItem('rol');
+            if (rol !== 'administrador' || !token) {
+                window.location.href = 'index.html';
+                return;
+            }
+
             try {
-                const response = await fetch('/api/admin/dashboard');
-                const result = await response.json();
+                const response = await fetch('/api/admin/datos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error('Error al cargar datos del administrador');
+                }
+                const data = await response.json();
                 
-                // Update Bank Capital
-                document.getElementById('capitalBanco').textContent = parseFloat(result.capital_banco).toFixed(2);
-                
-                // Clear tables before adding new data
-                const depositosTableBody = document.querySelector('#depositosTable tbody');
-                const retirosTableBody = document.querySelector('#retirosTable tbody');
-                const creditosTableBody = document.querySelector('#creditosTable tbody');
+                document.getElementById('capitalTotal').textContent = `$${parseFloat(data.capital).toFixed(2)}`;
 
-                depositosTableBody.innerHTML = '';
-                retirosTableBody.innerHTML = '';
-                creditosTableBody.innerHTML = '';
-
-                // Populate deposit requests table
-                result.solicitudes_deposito.forEach(req => {
-                    const row = `
-                        <tr>
-                            <td>${req.id}</td>
-                            <td>${req.first_name} ${req.last_name}</td>
-                            <td>$${req.amount.toFixed(2)}</td>
-                            <td>${new Date(req.created_at).toLocaleDateString()}</td>
-                            <td>
-                                <button class="btn-action btn-approve" onclick="gestionarTransaccion('deposito', ${req.id}, 'aprobar')">Approve</button>
-                                <button class="btn-action btn-reject" onclick="gestionarTransaccion('deposito', ${req.id}, 'rechazar')">Reject</button>
-                            </td>
-                        </tr>
-                    `;
-                    depositosTableBody.innerHTML += row;
+                // Llenar tabla de solicitudes
+                const solicitudesTableBody = document.querySelector('#solicitudesTable tbody');
+                solicitudesTableBody.innerHTML = '';
+                data.solicitudes.forEach(solicitud => {
+                    const row = solicitudesTableBody.insertRow();
+                    row.insertCell(0).textContent = solicitud.id;
+                    row.insertCell(1).textContent = solicitud.usuario_id;
+                    row.insertCell(2).textContent = solicitud.tipo;
+                    row.insertCell(3).textContent = `$${parseFloat(solicitud.monto).toFixed(2)}`;
+                    row.insertCell(4).textContent = solicitud.banco_externo || 'N/A';
+                    row.insertCell(5).textContent = solicitud.estado;
+                    const actionsCell = row.insertCell(6);
+                    actionsCell.className = 'action-buttons';
+                    const approveBtn = document.createElement('button');
+                    approveBtn.textContent = 'Aprobar';
+                    approveBtn.onclick = () => procesarSolicitud(solicitud.id, 'aprobada');
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.textContent = 'Rechazar';
+                    rejectBtn.onclick = () => procesarSolicitud(solicitud.id, 'rechazada');
+                    actionsCell.appendChild(approveBtn);
+                    actionsCell.appendChild(rejectBtn);
                 });
 
-                // Populate withdrawal requests table
-                result.solicitudes_retiro.forEach(req => {
-                    const row = `
-                        <tr>
-                            <td>${req.id}</td>
-                            <td>${req.first_name} ${req.last_name}</td>
-                            <td>$${req.amount.toFixed(2)}</td>
-                            <td>${new Date(req.created_at).toLocaleDateString()}</td>
-                            <td>
-                                <button class="btn-action btn-approve" onclick="gestionarTransaccion('retiro', ${req.id}, 'aprobar')">Approve</button>
-                                <button class="btn-action btn-reject" onclick="gestionarTransaccion('retiro', ${req.id}, 'rechazar')">Reject</button>
-                            </td>
-                        </tr>
-                    `;
-                    retirosTableBody.innerHTML += row;
+                // Llenar tabla de clientes
+                const clientesTableBody = document.querySelector('#clientesTable tbody');
+                clientesTableBody.innerHTML = '';
+                data.clientes.forEach(cliente => {
+                    const row = clientesTableBody.insertRow();
+                    row.insertCell(0).textContent = cliente.cedula;
+                    row.insertCell(1).textContent = cliente.nombres;
+                    row.insertCell(2).textContent = cliente.apellidos;
+                    row.insertCell(3).textContent = `$${parseFloat(cliente.saldo).toFixed(2)}`;
+                    row.insertCell(4).textContent = cliente.correo;
                 });
-
-                // Populate loan requests table
-                result.solicitudes_credito.forEach(req => {
-                    const row = `
-                        <tr>
-                            <td>${req.id}</td>
-                            <td>${req.first_name} ${req.last_name}</td>
-                            <td>$${req.amount.toFixed(2)}</td>
-                            <td>${req.loan_term_days}</td>
-                            <td>${new Date(req.created_at).toLocaleDateString()}</td>
-                            <td>
-                                <button class="btn-action btn-approve" onclick="gestionarTransaccion('credito', ${req.id}, 'aprobar')">Approve</button>
-                                <button class="btn-action btn-reject" onclick="gestionarTransaccion('credito', ${req.id}, 'rechazar')">Reject</button>
-                            </td>
-                        </tr>
-                    `;
-                    creditosTableBody.innerHTML += row;
-                });
-
             } catch (err) {
-                console.error('Error fetching admin data:', err);
-                alert('Error fetching admin data. Please try again.');
+                console.error('Error al cargar los datos del administrador:', err);
+                showMessage('Error al cargar los datos del administrador.', 'error');
             }
         }
 
-        async function gestionarTransaccion(tipo, id, accion) {
-            const confirmAction = confirm(`Are you sure you want to ${accion} this ${tipo} request?`);
-            if (!confirmAction) return;
+        async function procesarSolicitud(solicitudId, estado) {
+            const token = sessionStorage.getItem('token');
             try {
-                const response = await fetch(`/api/admin/transaccion/${tipo}/${id}`, {
+                const response = await fetch('/api/admin/solicitud/aprobar', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accion })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ solicitudId, estado })
                 });
                 const result = await response.json();
-                alert(result.message);
                 if (response.ok) {
+                    showMessage(result.message);
                     cargarDatosAdmin();
+                } else {
+                    showMessage(result.message, 'error');
                 }
             } catch (err) {
-                console.error('Error managing transaction:', err);
-                alert('An error occurred while managing the transaction.');
+                console.error('Error al procesar la solicitud:', err);
+                showMessage('Error al procesar la solicitud.', 'error');
             }
         }
 
         async function gestionarCapital(accion) {
-            const monto = parseFloat(document.getElementById('montoCapital').value);
-            const motivo = document.getElementById('motivoCapital').value;
+            const montoInput = document.getElementById('montoCapital');
+            const motivoInput = document.getElementById('motivoCapital');
+            const monto = parseFloat(montoInput.value);
+            const motivo = motivoInput.value;
+            const token = sessionStorage.getItem('token');
+
             if (isNaN(monto) || monto <= 0 || !motivo) {
-                alert('Please enter a valid amount and reason.');
+                showMessage('Por favor, ingresa un monto válido y un motivo.', 'error');
                 return;
             }
 
             try {
                 const response = await fetch('/api/admin/capital', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ accion, monto, motivo })
                 });
                 const result = await response.json();
-                alert(result.message);
                 if (response.ok) {
+                    showMessage(result.message);
                     cargarDatosAdmin();
-                    document.getElementById('montoCapital').value = '';
-                    document.getElementById('motivoCapital').value = '';
+                    montoInput.value = '';
+                    motivoInput.value = '';
+                } else {
+                    showMessage(result.message, 'error');
                 }
             } catch (err) {
-                console.error('Error managing capital:', err);
-                alert('Error managing bank capital.');
-            }
-        }
-
-        async function toggleModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
-            if (modal.style.display === 'flex' && modalId === 'capitalHistoryModal') {
-                try {
-                    const response = await fetch('/api/admin/capital/historial');
-                    const history = await response.json();
-                    const tableBody = document.querySelector('#capitalHistoryTable tbody');
-                    tableBody.innerHTML = '';
-                    history.forEach(item => {
-                        const row = `
-                            <tr>
-                                <td>${new Date(item.created_at).toLocaleDateString()}</td>
-                                <td style="color: ${item.amount < 0 ? 'red' : 'green'};">$${item.amount.toFixed(2)}</td>
-                                <td>${item.description}</td>
-                            </tr>
-                        `;
-                        tableBody.innerHTML += row;
-                    });
-                } catch (err) {
-                    console.error('Error fetching capital history:', err);
-                    alert('Error fetching capital history.');
-                }
+                console.error('Error al gestionar capital:', err);
+                showMessage('Error al gestionar el capital del banco.', 'error');
             }
         }
         
+        // Cargar los datos al iniciar la página
         document.addEventListener('DOMContentLoaded', cargarDatosAdmin);
         
         function logout() {
