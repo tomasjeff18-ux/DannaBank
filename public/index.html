@@ -1,71 +1,214 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Danna Bank</title>
+    <title>Danna Bank</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         body {
             font-family: 'Inter', sans-serif;
+            @apply bg-gray-100 text-gray-800 flex justify-center items-center min-h-screen p-4;
+        }
+        .container {
+            @apply bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl;
+        }
+        .form-container {
+            @apply flex flex-col items-center;
+        }
+        input, select, textarea {
+            @apply w-full p-3 my-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all;
+        }
+        button {
+            @apply w-full p-3 my-2 rounded-md font-bold transition-all duration-300;
+        }
+        .btn-primary {
+            @apply bg-yellow-500 text-white hover:bg-yellow-600;
+        }
+        .btn-secondary {
+            @apply bg-gray-300 text-gray-800 hover:bg-gray-400;
+        }
+        .dashboard-grid {
+            @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+        }
+        .card {
+            @apply bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200;
         }
     </style>
 </head>
-
-<body class="bg-blue-900 text-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white text-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm text-center">
-        <h2 class="text-3xl font-bold mb-6 text-blue-900">User Login</h2>
-        <form id="loginForm" class="space-y-4">
-            <input type="email" id="email" name="email" placeholder="Email" required
-                class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input type="password" id="password" name="password" placeholder="Password" required
-                class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button type="submit"
-                class="w-full bg-yellow-500 text-blue-900 font-bold py-3 rounded-lg hover:bg-yellow-600 transition-colors">
-                Log In
-            </button>
-        </form>
-        <p class="mt-6 text-sm text-gray-600">
-            Don't have an account? <a href="registration.html" class="text-blue-600 hover:underline">Register here</a>
-        </p>
-    </div>
-
-    <div id="messageModal"
-        class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm mx-auto text-center">
-            <p id="modalMessage" class="text-gray-800 mb-4"></p>
-            <button onclick="closeModal()"
-                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
-                OK
-            </button>
-        </div>
+<body>
+    <div id="app" class="container">
+        <!-- Contenido dinámico del SPA -->
     </div>
 
     <script>
-        const showMessage = (message, redirectUrl = null) => {
-            document.getElementById('modalMessage').textContent = message;
-            document.getElementById('messageModal').classList.remove('hidden');
-            if (redirectUrl) {
-                window.redirectUrl = redirectUrl;
-            }
-        };
+        // Función para renderizar una vista específica
+        function renderView(viewName) {
+            const app = document.getElementById('app');
+            app.innerHTML = ''; // Limpiar el contenido existente
 
-        const closeModal = () => {
-            document.getElementById('messageModal').classList.add('hidden');
-            if (window.redirectUrl) {
-                window.location.href = window.redirectUrl;
-                window.redirectUrl = null;
-            }
-        };
+            const views = {
+                login: `
+                    <div class="form-container">
+                        <h2 class="text-3xl font-bold mb-6 text-center">Iniciar Sesión</h2>
+                        <form id="loginForm" class="w-full max-w-sm">
+                            <input type="email" id="correo" name="correo" placeholder="Correo Electrónico" required>
+                            <input type="password" id="contrasena" name="contrasena" placeholder="Contraseña" required>
+                            <button type="submit" class="btn-primary">Iniciar Sesión</button>
+                        </form>
+                        <p class="mt-4 text-center">¿No tienes cuenta? <a href="#" onclick="renderView('registro')" class="text-yellow-600 hover:underline">Regístrate</a></p>
+                    </div>
+                `,
+                registro: `
+                    <div class="form-container">
+                        <h2 class="text-3xl font-bold mb-6 text-center">Registro de Cliente</h2>
+                        <form id="registroForm" class="w-full max-w-md">
+                            <input type="text" name="nombres" placeholder="Nombres" required>
+                            <input type="text" name="apellidos" placeholder="Apellidos" required>
+                            <input type="text" name="cedula" placeholder="Cédula" required>
+                            <input type="email" name="correo" placeholder="Correo Electrónico" required>
+                            <input type="password" name="contrasena" placeholder="Contraseña" required>
+                            <input type="tel" name="telefono" placeholder="Teléfono">
+                            <input type="text" name="direccion" placeholder="Dirección">
+                            <input type="text" name="provincia" placeholder="Provincia">
+                            <input type="text" name="ciudad" placeholder="Ciudad">
+                            <input type="text" name="cedula_recomendador" placeholder="Cédula de Recomendador (Opcional)">
+                            <button type="submit" class="btn-primary">Registrarse</button>
+                        </form>
+                        <p class="mt-4 text-center">¿Ya eres usuario? <a href="#" onclick="renderView('login')" class="text-yellow-600 hover:underline">Inicia Sesión</a></p>
+                    </div>
+                `,
+                panel_cliente: `
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center pb-4 border-b border-gray-200">
+                            <h1 class="text-2xl font-bold">Panel de Cliente</h1>
+                            <div class="flex items-center space-x-4">
+                                <span id="userName" class="text-lg font-semibold"></span>
+                                <button onclick="logout()" class="btn-secondary">Salir</button>
+                            </div>
+                        </div>
 
-        document.getElementById('loginForm').addEventListener('submit', async function (event) {
+                        <div class="dashboard-grid">
+                            <div class="card col-span-1">
+                                <h3 class="text-xl font-bold mb-2">Saldo Actual</h3>
+                                <p id="saldoCliente" class="text-4xl font-extrabold text-yellow-500"></p>
+                            </div>
+
+                            <div class="card col-span-2">
+                                <h3 class="text-xl font-bold mb-2">Solicitar Transacción/Crédito</h3>
+                                <form id="solicitudesForm" class="space-y-2">
+                                    <div>
+                                        <select id="tipo" name="tipo" onchange="toggleFields()" required>
+                                            <option value="">Selecciona tipo de solicitud</option>
+                                            <option value="deposito">Depósito</option>
+                                            <option value="retiro">Retiro</option>
+                                            <option value="credito">Crédito</option>
+                                        </select>
+                                    </div>
+                                    <div id="montoGroup">
+                                        <input type="number" id="monto" name="monto" placeholder="Monto" step="0.01" min="0.01" required>
+                                    </div>
+                                    <div id="bancoGroup" class="hidden">
+                                        <input type="text" id="banco" name="banco" placeholder="Banco">
+                                    </div>
+                                    <div id="cuentaGroup" class="hidden">
+                                        <input type="text" id="cuenta" name="cuenta" placeholder="Número de Cuenta">
+                                    </div>
+                                    <div id="plazoGroup" class="hidden">
+                                        <input type="text" id="plazo" name="plazo" placeholder="Plazo de crédito (meses)">
+                                    </div>
+                                    <button type="submit" class="btn-primary">Enviar Solicitud</button>
+                                </form>
+                            </div>
+
+                            <div class="card">
+                                <h3 class="text-xl font-bold mb-2">Transferencias</h3>
+                                <form id="transferForm" class="space-y-2">
+                                    <input type="text" id="receiverCedula" name="receiverCedula" placeholder="Cédula del Destinatario" required>
+                                    <input type="number" id="transferAmount" name="amount" placeholder="Monto" step="0.01" min="0.01" required>
+                                    <button type="submit" class="btn-primary">Transferir</button>
+                                </form>
+                            </div>
+
+                            <div class="card col-span-1 md:col-span-2 lg:col-span-2">
+                                <h3 class="text-xl font-bold mb-2">Historial de Transacciones</h3>
+                                <ul id="transactionHistory" class="space-y-2 text-sm max-h-60 overflow-y-auto"></ul>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                panel_admin: `
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center pb-4 border-b border-gray-200">
+                            <h1 class="text-2xl font-bold">Panel de Administrador</h1>
+                            <button onclick="logout()" class="btn-secondary">Salir</button>
+                        </div>
+                        
+                        <div class="dashboard-grid">
+                            <div class="card">
+                                <h3 class="text-xl font-bold mb-2">Capital del Banco</h3>
+                                <p id="capitalBanco" class="text-4xl font-extrabold text-yellow-500"></p>
+                            </div>
+
+                            <div class="card">
+                                <h3 class="text-xl font-bold mb-2">Gestión de Capital</h3>
+                                <form id="capitalForm" class="space-y-2">
+                                    <select id="accionCapital" name="accion" required>
+                                        <option value="aumentar">Aumentar Capital</option>
+                                        <option value="reducir">Reducir Capital</option>
+                                    </select>
+                                    <input type="number" id="montoCapital" name="monto" placeholder="Monto" step="0.01" min="0.01" required>
+                                    <input type="text" id="motivoCapital" name="motivo" placeholder="Motivo" required>
+                                    <button type="submit" class="btn-primary">Actualizar Capital</button>
+                                </form>
+                            </div>
+
+                            <div class="card col-span-1 md:col-span-2 lg:col-span-3">
+                                <h3 class="text-xl font-bold mb-2">Solicitudes Pendientes</h3>
+                                <div id="solicitudesContainer" class="space-y-4">
+                                    <div>
+                                        <h4 class="font-semibold text-lg">Créditos</h4>
+                                        <ul id="creditosPendientes" class="space-y-2 text-sm max-h-40 overflow-y-auto"></ul>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-lg">Retiros y Depósitos</h4>
+                                        <ul id="retirosPendientes" class="space-y-2 text-sm max-h-40 overflow-y-auto"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+            };
+
+            if (views[viewName]) {
+                app.innerHTML = views[viewName];
+                attachEventListeners(viewName);
+            }
+        }
+
+        // Lógica para adjuntar eventos a los formularios
+        function attachEventListeners(viewName) {
+            if (viewName === 'login') {
+                document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            } else if (viewName === 'registro') {
+                document.getElementById('registroForm').addEventListener('submit', handleRegistro);
+            } else if (viewName === 'panel_cliente') {
+                document.getElementById('solicitudesForm').addEventListener('submit', handleSolicitud);
+                document.getElementById('transferForm').addEventListener('submit', handleTransferencia);
+                document.getElementById('tipo').addEventListener('change', toggleFields);
+                cargarDatosCliente();
+            } else if (viewName === 'panel_admin') {
+                document.getElementById('capitalForm').addEventListener('submit', handleCapital);
+                cargarDatosAdmin();
+            }
+        }
+
+        async function handleLogin(event) {
             event.preventDefault();
-            const formData = new FormData(this);
+            const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
-
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',
@@ -73,23 +216,257 @@
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
-
                 if (response.ok) {
-                    sessionStorage.setItem('user', JSON.stringify(result.user));
-                    if (result.role === 'client') {
-                        window.location.href = 'client_panel.html';
-                    } else if (result.role === 'admin') {
-                        window.location.href = 'admin_panel.html';
+                    localStorage.setItem('token', result.token);
+                    alert(result.message);
+                    if (result.user.role === 'cliente') {
+                        renderView('panel_cliente');
+                    } else if (result.user.role === 'administrador') {
+                        renderView('panel_admin');
                     }
                 } else {
-                    showMessage(result.message);
+                    alert(result.message);
                 }
             } catch (err) {
-                console.error('Login error:', err);
-                showMessage('An error occurred while processing your request.');
+                console.error('Error al iniciar sesión:', err);
+                alert('Hubo un error al procesar tu solicitud.');
+            }
+        }
+
+        async function handleRegistro(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const response = await fetch('/api/registro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (response.status === 201) {
+                    renderView('login');
+                }
+            } catch (err) {
+                console.error('Error al enviar el formulario:', err);
+                alert('Hubo un error al procesar tu solicitud.');
+            }
+        }
+
+        async function cargarDatosCliente() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                renderView('login');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cliente/datos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error('No autorizado.');
+                }
+                const data = await response.json();
+                document.getElementById('userName').textContent = data.cliente.nombres;
+                document.getElementById('saldoCliente').textContent = `$${parseFloat(data.cuenta.balance).toFixed(2)}`;
+                
+                const transactionList = document.getElementById('transactionHistory');
+                transactionList.innerHTML = '';
+                data.transacciones.forEach(tx => {
+                    const li = document.createElement('li');
+                    const isSender = tx.sender_id === data.cliente.id;
+                    const amountText = isSender ? `-${parseFloat(tx.amount).toFixed(2)}` : `+${parseFloat(tx.amount).toFixed(2)}`;
+                    const typeText = tx.transaction_type;
+                    li.innerHTML = `<span class="font-bold">${typeText}</span>: <span class="${isSender ? 'text-red-500' : 'text-green-500'} font-semibold">${amountText}</span>`;
+                    transactionList.appendChild(li);
+                });
+
+            } catch (err) {
+                console.error('Error al cargar datos del cliente:', err);
+                alert('Sesión expirada o no válida. Por favor, inicia sesión de nuevo.');
+                logout();
+            }
+        }
+
+        async function handleTransferencia(event) {
+            event.preventDefault();
+            const token = localStorage.getItem('token');
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            if (parseFloat(data.amount) <= 0) {
+                alert('El monto debe ser mayor a cero.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/transferencia', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (response.ok) {
+                    cargarDatosCliente();
+                }
+            } catch (err) {
+                console.error('Error al realizar transferencia:', err);
+                alert('Error al realizar la transferencia.');
+            }
+        }
+        
+        async function handleSolicitud(event) {
+            event.preventDefault();
+            const token = localStorage.getItem('token');
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            if (parseFloat(data.monto) <= 0) {
+                alert('El monto debe ser mayor a cero.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/solicitud', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (response.ok) {
+                    event.target.reset();
+                    toggleFields();
+                }
+            } catch (err) {
+                console.error('Error al enviar solicitud:', err);
+                alert('Error al enviar la solicitud.');
+            }
+        }
+
+        function toggleFields() {
+            const tipo = document.getElementById('tipo').value;
+            document.getElementById('bancoGroup').style.display = 'none';
+            document.getElementById('cuentaGroup').style.display = 'none';
+            document.getElementById('plazoGroup').style.display = 'none';
+
+            if (tipo === 'deposito' || tipo === 'retiro') {
+                document.getElementById('bancoGroup').style.display = 'block';
+                document.getElementById('cuentaGroup').style.display = 'block';
+            } else if (tipo === 'credito') {
+                document.getElementById('plazoGroup').style.display = 'block';
+            }
+        }
+
+        async function cargarDatosAdmin() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                renderView('login');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/datos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    throw new Error('No autorizado.');
+                }
+                const data = await response.json();
+                document.getElementById('capitalBanco').textContent = `$${parseFloat(data.capital).toFixed(2)}`;
+
+                const creditosList = document.getElementById('creditosPendientes');
+                creditosList.innerHTML = '';
+                data.solicitudes.forEach(solicitud => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `Solicitud de crédito de $${parseFloat(solicitud.amount).toFixed(2)} por ${solicitud.plazo} meses. <button onclick="aprobarCredito('${solicitud.id}')" class="btn-primary text-xs ml-2">Aprobar</button>`;
+                    creditosList.appendChild(li);
+                });
+
+                const retirosList = document.getElementById('retirosPendientes');
+                retirosList.innerHTML = '';
+                data.retiros.forEach(retiro => {
+                    const li = document.createElement('li');
+                    const tipo = retiro.status === 'pending' ? 'Retiro' : 'Depósito';
+                    li.innerHTML = `Solicitud de ${tipo} de $${parseFloat(retiro.amount).toFixed(2)}. <button onclick="aprobarRetiro('${retiro.id}')" class="btn-primary text-xs ml-2">Aprobar</button>`;
+                    retirosList.appendChild(li);
+                });
+
+            } catch (err) {
+                console.error('Error al cargar datos del administrador:', err);
+                alert('Sesión expirada o no válida. Por favor, inicia sesión de nuevo.');
+                logout();
+            }
+        }
+
+        async function handleCapital(event) {
+            event.preventDefault();
+            const token = localStorage.getItem('token');
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            if (parseFloat(data.monto) <= 0) {
+                alert('El monto debe ser mayor a cero.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/capital', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (response.ok) {
+                    cargarDatosAdmin();
+                }
+            } catch (err) {
+                console.error('Error al gestionar capital:', err);
+                alert('Error al gestionar el capital del banco.');
+            }
+        }
+
+        async function aprobarCredito(solicitudId) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch('/api/admin/aprobar_credito', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ solicitudId })
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (response.ok) {
+                    cargarDatosAdmin();
+                }
+            } catch (err) {
+                console.error('Error al aprobar crédito:', err);
+                alert('Error al aprobar el crédito.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            renderView('login');
+        }
+
+        // Lógica para determinar qué vista cargar al iniciar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Si hay un token, intentar validar y cargar la vista correcta
+                // Se podría hacer una llamada al servidor para validar el token y obtener el rol
+                // Por simplicidad, asumimos que si hay un token, el usuario está logueado
+                // y se determina el rol al cargar los datos del panel.
+                renderView('panel_cliente'); // Intentar cargar el panel de cliente por defecto
+            } else {
+                renderView('login');
             }
         });
     </script>
 </body>
-
 </html>
