@@ -1,4 +1,4 @@
-// Importar las librerías necesarias
+// Import necessary libraries
 const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
@@ -6,10 +6,10 @@ const bcrypt = require('bcryptjs');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware para procesar JSON en las peticiones
+// Middleware to process JSON requests
 app.use(express.json());
 
-// Configuración de la conexión a la base de datos
+// Database connection configuration
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -17,14 +17,14 @@ const pool = new Pool({
     }
 });
 
-// Middleware para servir los archivos estáticos desde la carpeta 'public'
+// Middleware to serve static files from the 'public' folder
 app.use(express.static('public'));
 
 // --------------------------------------------------------------------------
-// --- Endpoints de la API ---
+// --- API Endpoints ---
 // --------------------------------------------------------------------------
 
-// 1. Endpoint para el registro de clientes
+// 1. Endpoint for client registration
 app.post('/api/registro', async (req, res) => {
     const {
         nombres,
@@ -39,247 +39,260 @@ app.post('/api/registro', async (req, res) => {
         cedula_recomendador
     } = req.body;
 
+    // The request body and variables still use Spanish names, which is okay.
+    // We'll translate them for the database query.
+    const firstName = nombres;
+    const lastName = apellidos;
+    const idNumber = cedula;
+    const email = correo;
+    const password = contrasena;
+    const phone = telefono;
+    const address = direccion;
+    const province = provincia;
+    const city = ciudad;
+    const referrerId = cedula_recomendador;
+
     try {
         const checkUser = await pool.query(
-            'SELECT * FROM usuarios WHERE correo = $1 OR cedula = $2', [correo, cedula]
+            'SELECT * FROM users WHERE email = $1 OR id_number = $2', [email, idNumber]
         );
         if (checkUser.rows.length > 0) {
-            return res.status(409).json({ message: 'El correo o la cédula ya están registrados.' });
+            return res.status(409).json({ message: 'The email or ID number is already registered.' });
         }
 
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(contrasena, salt);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
         await pool.query(
-            `INSERT INTO usuarios (nombres, apellidos, cedula, correo, contrasena, telefono, direccion, provincia, ciudad, cedula_recomendador)
+            `INSERT INTO users (first_name, last_name, id_number, email, password_hash, phone, address, province, city, referrer_id)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-            [nombres, apellidos, cedula, correo, hashedPassword, telefono, direccion, provincia, ciudad, cedula_recomendador]
+            [firstName, lastName, idNumber, email, hashedPassword, phone, address, province, city, referrerId]
         );
 
-        res.status(201).json({ message: 'Registro exitoso. Ahora puedes iniciar sesión.' });
+        res.status(201).json({ message: 'Registration successful. You can now log in.' });
     } catch (err) {
-        console.error('Error al registrar usuario:', err);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        console.error('Error registering user:', err);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
-// 2. Endpoint para el inicio de sesión
+// 2. Endpoint for login
 app.post('/api/login', async (req, res) => {
     const { correo, contrasena } = req.body;
     try {
         const user = await pool.query(
-            'SELECT id, nombres, apellidos, contrasena, rol FROM usuarios WHERE correo = $1', [correo]
+            'SELECT id, first_name, last_name, password_hash, role FROM users WHERE email = $1', [correo]
         );
         if (user.rows.length === 0) {
-            return res.status(401).json({ message: 'Credenciales inválidas.' });
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
         const foundUser = user.rows[0];
 
-        const isMatch = await bcrypt.compare(contrasena, foundUser.contrasena);
+        const isMatch = await bcrypt.compare(contrasena, foundUser.password_hash);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Credenciales inválidas.' });
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
         
         res.status(200).json({
-            message: 'Inicio de sesión exitoso.',
-            rol: foundUser.rol,
+            message: 'Login successful.',
+            role: foundUser.role,
             user: {
                 id: foundUser.id,
-                nombres: foundUser.nombres,
-                apellidos: foundUser.apellidos
+                first_name: foundUser.first_name,
+                last_name: foundUser.last_name
             }
         });
 
     } catch (err) {
-        console.error('Error al iniciar sesión:', err);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        console.error('Error logging in:', err);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
-// 3. Endpoint para obtener los datos del cliente
+// 3. Endpoint to get client data
 app.get('/api/cliente/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const datosCliente = await pool.query(
-            'SELECT nombres, apellidos, saldo_actual, cedula_recomendador, correo FROM usuarios WHERE id = $1', [id]
+        const clientData = await pool.query(
+            'SELECT first_name, last_name, balance, referrer_id, email FROM users WHERE id = $1', [id]
         );
-        const historialMovimientos = await pool.query(
-            'SELECT tipo, monto, fecha, estado, motivo FROM movimientos WHERE usuario_id = $1 ORDER BY fecha DESC', [id]
+        const transactionHistory = await pool.query(
+            'SELECT type, amount, created_at FROM transactions WHERE user_id = $1 ORDER BY created_at DESC', [id]
         );
-        const historialCreditos = await pool.query(
-            'SELECT monto_solicitado, monto_total_a_pagar, fecha_vencimiento, estado FROM creditos WHERE usuario_id = $1 ORDER BY fecha_solicitud DESC', [id]
+        const loanHistory = await pool.query(
+            'SELECT amount, total_amount_to_pay, end_date, status FROM loans WHERE user_id = $1 ORDER BY start_date DESC', [id]
         );
-        const totalCreditos = await pool.query(
-            'SELECT SUM(monto_solicitado) AS total FROM creditos WHERE usuario_id = $1 AND estado = \'aprobado\'', [id]
+        const totalLoans = await pool.query(
+            'SELECT SUM(amount) AS total FROM loans WHERE user_id = $1 AND status = \'approved\'', [id]
         );
 
-        if (datosCliente.rows.length === 0) {
-            return res.status(404).json({ message: 'Cliente no encontrado.' });
+        if (clientData.rows.length === 0) {
+            return res.status(404).json({ message: 'Client not found.' });
         }
         
         res.status(200).json({
-            cliente: datosCliente.rows[0],
-            movimientos: historialMovimientos.rows,
-            creditos: historialCreditos.rows,
-            total_creditos: totalCreditos.rows[0].total || 0
+            client: clientData.rows[0],
+            transactions: transactionHistory.rows,
+            loans: loanHistory.rows,
+            total_loans: totalLoans.rows[0].total || 0
         });
 
     } catch (err) {
-        console.error('Error al obtener datos del cliente:', err);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        console.error('Error getting client data:', err);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
-// 4. Endpoint para enviar solicitudes (depósito, retiro, crédito)
+// 4. Endpoint to send requests (deposit, withdrawal, loan)
 app.post('/api/solicitud', async (req, res) => {
-    const { usuario_id, tipo, monto, banco, cuenta, plazo } = req.body;
+    const { user_id, type, amount, bank, account, term } = req.body;
     try {
-        // Validación básica
-        if (!usuario_id || !tipo || isNaN(monto) || monto <= 0) {
-            return res.status(400).json({ message: 'Datos de solicitud incompletos o inválidos.' });
+        // Basic validation
+        if (!user_id || !type || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ message: 'Incomplete or invalid request data.' });
         }
 
-        if (tipo === 'deposito' || tipo === 'retiro') {
+        if (type === 'deposit' || type === 'withdrawal') {
             await pool.query(
-                'INSERT INTO movimientos (usuario_id, tipo, monto, estado, banco, cuenta) VALUES ($1, $2, $3, \'pendiente\', $4, $5)',
-                [usuario_id, tipo, monto, banco || null, cuenta || null]
+                'INSERT INTO transactions (user_id, type, amount, status, bank, account) VALUES ($1, $2, $3, \'pending\', $4, $5)',
+                [user_id, type, amount, bank || null, account || null]
             );
-        } else if (tipo === 'credito') {
-            const interes = 10.00;
-            const montoTotal = monto + (monto * (interes / 100));
-            const fechaVencimiento = new Date();
-            fechaVencimiento.setDate(fechaVencimiento.getDate() + parseInt(plazo));
+        } else if (type === 'loan') {
+            const interest = 10.00;
+            const totalAmount = amount + (amount * (interest / 100));
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + parseInt(term));
 
             await pool.query(
-                `INSERT INTO creditos (usuario_id, monto_solicitado, plazo_dias, interes, monto_total_a_pagar, fecha_vencimiento, estado)
-                 VALUES ($1, $2, $3, $4, $5, $6, 'pendiente')`,
-                [usuario_id, monto, plazo, interes, montoTotal, fechaVencimiento]
+                `INSERT INTO loans (user_id, amount, term_days, interest_rate, total_amount_to_pay, end_date, status)
+                 VALUES ($1, $2, $3, $4, $5, $6, 'pending')`,
+                [user_id, amount, term, interest, totalAmount, endDate]
             );
         }
 
-        res.status(201).json({ message: `Solicitud de ${tipo} enviada con éxito. Espera la aprobación del administrador.` });
+        res.status(201).json({ message: `Request for ${type} sent successfully. Awaiting administrator approval.` });
 
     } catch (err) {
-        console.error('Error al procesar la solicitud:', err);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        console.error('Error processing request:', err);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
-// 5. Endpoint para el panel de administrador
+// 5. Endpoint for the admin dashboard
 app.get('/api/admin/dashboard', async (req, res) => {
     try {
         const [
-            usuarios,
-            solicitudesDeposito,
-            solicitudesRetiro,
-            solicitudesCredito,
-            capitalBanco
+            users,
+            depositRequests,
+            withdrawalRequests,
+            loanRequests,
+            bankCapital
         ] = await Promise.all([
-            pool.query('SELECT COUNT(*) AS total_usuarios FROM usuarios'),
-            pool.query('SELECT m.*, u.nombres, u.apellidos, u.cedula FROM movimientos m INNER JOIN usuarios u ON m.usuario_id = u.id WHERE m.estado = \'pendiente\' AND m.tipo = \'deposito\' ORDER BY m.fecha DESC'),
-            pool.query('SELECT m.*, u.nombres, u.apellidos, u.cedula FROM movimientos m INNER JOIN usuarios u ON m.usuario_id = u.id WHERE m.estado = \'pendiente\' AND m.tipo = \'retiro\' ORDER BY m.fecha DESC'),
-            pool.query('SELECT c.*, u.nombres, u.apellidos, u.cedula FROM creditos c INNER JOIN usuarios u ON c.usuario_id = u.id WHERE c.estado = \'pendiente\' ORDER BY c.fecha_solicitud DESC'),
-            pool.query('SELECT capital FROM capital_banco LIMIT 1')
+            pool.query('SELECT COUNT(*) AS total_users FROM users'),
+            pool.query('SELECT t.*, u.first_name, u.last_name, u.id_number FROM transactions t INNER JOIN users u ON t.user_id = u.id WHERE t.status = \'pending\' AND t.type = \'deposit\' ORDER BY t.created_at DESC'),
+            pool.query('SELECT t.*, u.first_name, u.last_name, u.id_number FROM transactions t INNER JOIN users u ON t.user_id = u.id WHERE t.status = \'pending\' AND t.type = \'withdrawal\' ORDER BY t.created_at DESC'),
+            pool.query('SELECT l.*, u.first_name, u.last_name, u.id_number FROM loans l INNER JOIN users u ON l.user_id = u.id WHERE l.status = \'pending\' ORDER BY l.created_at DESC'),
+            pool.query('SELECT capital FROM bank_data LIMIT 1')
         ]);
 
         res.status(200).json({
-            total_usuarios: usuarios.rows[0].total_usuarios,
-            solicitudes_deposito: solicitudesDeposito.rows,
-            solicitudes_retiro: solicitudesRetiro.rows,
-            solicitudes_credito: solicitudesCredito.rows,
-            capital_banco: capitalBanco.rows[0].capital || 0
+            total_users: users.rows[0].total_users,
+            deposit_requests: depositRequests.rows,
+            withdrawal_requests: withdrawalRequests.rows,
+            loan_requests: loanRequests.rows,
+            bank_capital: bankCapital.rows[0].capital || 0
         });
 
     } catch (err) {
-        console.error('Error al obtener datos del dashboard del admin:', err);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        console.error('Error getting admin dashboard data:', err);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
 
-// 6. Endpoint para gestionar transacciones (aprobar/rechazar)
-app.post('/api/admin/transaccion/:tipo/:id', async (req, res) => {
-    const { tipo, id } = req.params;
-    const { accion } = req.body;
+// 6. Endpoint to manage transactions (approve/reject)
+app.post('/api/admin/transaccion/:type/:id', async (req, res) => {
+    const { type, id } = req.params;
+    const { action } = req.body;
     try {
         await pool.query('BEGIN');
 
-        if (accion === 'aprobar') {
-            if (tipo === 'deposito') {
-                const deposito = await pool.query('SELECT * FROM movimientos WHERE id = $1', [id]);
-                if (deposito.rows.length === 0) throw new Error('Depósito no encontrado.');
-                await pool.query('UPDATE usuarios SET saldo_actual = saldo_actual + $1 WHERE id = $2', [deposito.rows[0].monto, deposito.rows[0].usuario_id]);
-                await pool.query('UPDATE movimientos SET estado = \'aprobado\' WHERE id = $1', [id]);
-            } else if (tipo === 'retiro') {
-                const retiro = await pool.query('SELECT * FROM movimientos WHERE id = $1', [id]);
-                if (retiro.rows.length === 0) throw new Error('Retiro no encontrado.');
-                await pool.query('UPDATE usuarios SET saldo_actual = saldo_actual - $1 WHERE id = $2', [retiro.rows[0].monto, retiro.rows[0].usuario_id]);
-                await pool.query('UPDATE movimientos SET estado = \'aprobado\' WHERE id = $1', [id]);
-            } else if (tipo === 'credito') {
-                const credito = await pool.query('SELECT * FROM creditos WHERE id = $1', [id]);
-                if (credito.rows.length === 0) throw new Error('Crédito no encontrado.');
-                await pool.query('UPDATE usuarios SET saldo_actual = saldo_actual + $1 WHERE id = $2', [credito.rows[0].monto_solicitado, credito.rows[0].usuario_id]);
-                await pool.query('UPDATE creditos SET estado = \'aprobado\' WHERE id = $1', [id]);
-                await pool.query('UPDATE capital_banco SET capital = capital - $1', [credito.rows[0].monto_solicitado]);
-                await pool.query('INSERT INTO historial_capital (monto_cambio, motivo) VALUES ($1, $2)', [-credito.rows[0].monto_solicitado, 'Préstamo de crédito']);
+        if (action === 'approve') {
+            if (type === 'deposit') {
+                const deposit = await pool.query('SELECT * FROM transactions WHERE id = $1', [id]);
+                if (deposit.rows.length === 0) throw new Error('Deposit not found.');
+                await pool.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [deposit.rows[0].amount, deposit.rows[0].user_id]);
+                await pool.query('UPDATE transactions SET status = \'approved\' WHERE id = $1', [id]);
+            } else if (type === 'withdrawal') {
+                const withdrawal = await pool.query('SELECT * FROM transactions WHERE id = $1', [id]);
+                if (withdrawal.rows.length === 0) throw new Error('Withdrawal not found.');
+                await pool.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [withdrawal.rows[0].amount, withdrawal.rows[0].user_id]);
+                await pool.query('UPDATE transactions SET status = \'approved\' WHERE id = $1', [id]);
+            } else if (type === 'loan') {
+                const loan = await pool.query('SELECT * FROM loans WHERE id = $1', [id]);
+                if (loan.rows.length === 0) throw new Error('Loan not found.');
+                await pool.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [loan.rows[0].amount, loan.rows[0].user_id]);
+                await pool.query('UPDATE loans SET status = \'approved\' WHERE id = $1', [id]);
+                await pool.query('UPDATE bank_data SET capital = capital - $1', [loan.rows[0].amount]);
+                await pool.query('INSERT INTO capital_history (amount, description) VALUES ($1, $2)', [-loan.rows[0].amount, 'Loan granted']);
             }
-        } else if (accion === 'rechazar') {
-            if (tipo === 'deposito' || tipo === 'retiro') {
-                await pool.query('UPDATE movimientos SET estado = \'rechazado\' WHERE id = $1', [id]);
-            } else if (tipo === 'credito') {
-                await pool.query('UPDATE creditos SET estado = \'rechazado\' WHERE id = $1', [id]);
+        } else if (action === 'reject') {
+            if (type === 'deposit' || type === 'withdrawal') {
+                await pool.query('UPDATE transactions SET status = \'rejected\' WHERE id = $1', [id]);
+            } else if (type === 'loan') {
+                await pool.query('UPDATE loans SET status = \'rejected\' WHERE id = $1', [id]);
             }
         }
 
         await pool.query('COMMIT');
-        res.status(200).json({ message: `Transacción de ${tipo} ${accion}da con éxito.` });
+        res.status(200).json({ message: `Transaction of ${type} ${action}d successfully.` });
 
     } catch (err) {
         await pool.query('ROLLBACK');
-        console.error('Error al gestionar transacción:', err);
-        res.status(500).json({ message: 'Error interno del servidor. ' + err.message });
+        console.error('Error managing transaction:', err);
+        res.status(500).json({ message: 'Internal server error. ' + err.message });
     }
 });
 
-// 7. Endpoint para gestionar capital del banco
+// 7. Endpoint to manage bank capital
 app.post('/api/admin/capital', async (req, res) => {
-    const { accion, monto, motivo } = req.body;
+    const { action, amount, description } = req.body;
 
     try {
-        if (accion === 'agregar') {
-            await pool.query('UPDATE capital_banco SET capital = capital + $1', [monto]);
-            await pool.query('INSERT INTO historial_capital (monto_cambio, motivo) VALUES ($1, $2)', [monto, motivo]);
-        } else if (accion === 'reducir') {
-            await pool.query('UPDATE capital_banco SET capital = capital - $1', [monto]);
-            await pool.query('INSERT INTO historial_capital (monto_cambio, motivo) VALUES ($1, $2)', [-monto, motivo]);
+        if (action === 'add') {
+            await pool.query('UPDATE bank_data SET capital = capital + $1', [amount]);
+            await pool.query('INSERT INTO capital_history (amount, description) VALUES ($1, $2)', [amount, description]);
+        } else if (action === 'reduce') {
+            await pool.query('UPDATE bank_data SET capital = capital - $1', [amount]);
+            await pool.query('INSERT INTO capital_history (amount, description) VALUES ($1, $2)', [-amount, description]);
         } else {
-            return res.status(400).json({ message: 'Acción inválida.' });
+            return res.status(400).json({ message: 'Invalid action.' });
         }
-        res.status(200).json({ message: 'Capital del banco actualizado con éxito.' });
+        res.status(200).json({ message: 'Bank capital updated successfully.' });
     } catch (err) {
-        console.error('Error al gestionar capital:', err);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        console.error('Error managing capital:', err);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
-// 8. Endpoint para obtener el historial del capital
-app.get('/api/admin/capital/historial', async (req, res) => {
+// 8. Endpoint to get capital history
+app.get('/api/admin/capital/history', async (req, res) => {
     try {
-        const historial = await pool.query(
-            'SELECT fecha, monto_cambio, motivo FROM historial_capital ORDER BY fecha DESC LIMIT 30'
+        const history = await pool.query(
+            'SELECT created_at, amount, description FROM capital_history ORDER BY created_at DESC LIMIT 30'
         );
-        res.status(200).json(historial.rows);
+        res.status(200).json(history.rows);
     } catch (err) {
-        console.error('Error al obtener el historial de capital:', err);
-        res.status(500).json({ message: 'Error interno del servidor.' });
+        console.error('Error getting capital history:', err);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
 // --------------------------------------------------------------------------
-// --- Iniciar el Servidor (ESTA LÍNEA DEBE IR AL FINAL) ---
+// --- Start the Server (THIS LINE MUST GO AT THE END) ---
 // --------------------------------------------------------------------------
 
 app.listen(port, () => {
-    console.log(`Servidor Danna Bank escuchando en el puerto ${port}`);
+    console.log(`Danna Bank server listening on port ${port}`);
 });
